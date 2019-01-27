@@ -28,8 +28,7 @@ class XPlaneBeaconListener():
 			else:
 				print ("Beacon received, checking the data provided")
 				(maj, min, host, ver, role, port) = struct.unpack("<BBiiIH", msg[5:21])
-				sdta = msg[21:].split('\x00')
-				slen = len(sdta[0])
+				sdta = msg[21:].split(b'\0')
 				host_name=sdta[0]
 				print ("Host detected ", host_name)
 				print (" on port " , port,  " with version " , maj,  "." ,min, " Role:" ,role)

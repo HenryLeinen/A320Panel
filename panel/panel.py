@@ -99,7 +99,7 @@ class XPlaneReceiver(threading.Thread):
 				retvalues = {}
 				# read the header RREF
 				header = data[0:4]
-				if header == "RREF":
+				if header == b"RREF":
 					# we get 8 bytes for each dataref sent:
 					# an integer for he idx and the float value
 					values = data[5:]
