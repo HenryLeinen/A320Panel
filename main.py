@@ -3,7 +3,7 @@ from panel.xplane import XPlaneReceiver
 from panel.max7219 import Lcd
 from panel.display import Display
 from panel.encoder import Encoder
-from panel.keyboard import Keyboard
+from panel.keymatrix import Keyboard
 
 
 
@@ -40,11 +40,21 @@ encoder.registerRightEvent(onEncoderRight)
 
 print ("Staring Beacon-finder")
 x = XPlaneBeaconListener()
-(host, port) = x.listen()
-print ("X-Plane deteced on %s" % host)
+x.start()
 
-receiver = XPlaneReceiver(xp_host=host, xp_port=port, local_port=port)
-receiver.start()
+receiver = 0
+def xplaneDetectChange(stat, host):
+	global receiver
+	if stat == XPlaneBeaconListener.LISTENING:
+		(hostname, hostport) = host
+		print ("x-plane host found : %s" % host)
+		receiver = XPlaneReceiver(xp_host=hostname, xp_port=hostport, local_port=hostport)
+		receiver.start()
+	else:
+		print ("x-plane signal lost ")
+		if receiver != 0:
+			receiver.stop()
+			receiver = 0
 cont = True
 
 while cont:
@@ -56,7 +66,8 @@ while cont:
 
 keyboard.stop()
 x.stop()
-receiver.stop()
+if receiver != 0:
+	receiver.stop()
 print ("Waiting for thread termination")
 #receiver.join()
 print ("Thread terminated !")

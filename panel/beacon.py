@@ -3,7 +3,7 @@ import threading
 import struct
 
 # THis class will listen for the beacon, which is broadcasted from each x-plane instance on the local network
-class XPlaneBeaconListener():
+class XPlaneBeaconListener(threading.Thread):
 	SEARCHING = 1
 	LISTENING = 2
 	def __init__(self):
@@ -22,8 +22,9 @@ class XPlaneBeaconListener():
 		mreq = struct.pack('4sL', group, socket.INADDR_ANY)
 		self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 		self.sock.bind (("", 49707))
-		self.state = SEARCHING
+		self.state = self.SEARCHING
 		self.callback = []
+		self.host = ("",0)
 
 	def changeState(self, newstate):
 		if newstate != self.state:
@@ -50,14 +51,15 @@ class XPlaneBeaconListener():
 					print ("Unknown message received !")
 				else:
 					print ("Beacon received, checking the data provided")
-					if self.changeState(LISTENING) == True:
+					if self.changeState(self.LISTENING) == True:
 						(maj, min, host, ver, role, port) = struct.unpack("<BBiiIH", msg[5:21])
 						sdta = msg[21:].split(b'\0')
 						host_name=sdta[0]
+						self.host = (host_name, port)
 						print ("Host detected ", host_name)
 						print (" on port " , port,  " with version " , maj,  "." ,min, " Role:" ,role)
 			except socket.timeout:
-				self.changeState(SEARCHING)
+				self.changeState(self.SEARCHING)
 		self.sock.close()
 
 	def stop(self):
