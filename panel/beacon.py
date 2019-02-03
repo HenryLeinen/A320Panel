@@ -15,7 +15,7 @@ class XPlaneBeaconListener(threading.Thread):
 		# make sure the socketaddress can be shared with others (otherwise we would block)
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-		self.sock.settimeout(5.0)
+		self.sock.settimeout(3.0)
 
 		# x-plane send the beacon via a multicast, the address is 239.255.1.1
 		group = socket.inet_aton("239.255.1.1")
@@ -27,20 +27,18 @@ class XPlaneBeaconListener(threading.Thread):
 		self.host = ("",0)
 
 	def changeState(self, newstate):
+#		print ("XPlaneBeaconListener::changeState %s" % newstate )
 		if newstate != self.state:
 			# change of state detected. Call callback function if existing
 			self.state = newstate
 			for func in self.callback:
-				func(self.state)
+				func(self.state, self.host)
 			return True
 		else:
 			return False
 
-	def __iadd__(self, f):
-		self.callback.append(f)
-
-	def __isub__(self, f):
-		self.callback.remove(f)
+	def registerChangeEvent(self, cbk):
+		self.callback.append(cbk)
 
 	def run(self):
 		while self.active == True:
@@ -51,13 +49,14 @@ class XPlaneBeaconListener(threading.Thread):
 					print ("Unknown message received !")
 				else:
 					print ("Beacon received, checking the data provided")
-					if self.changeState(self.LISTENING) == True:
-						(maj, min, host, ver, role, port) = struct.unpack("<BBiiIH", msg[5:21])
-						sdta = msg[21:].split(b'\0')
-						host_name=sdta[0]
-						self.host = (host_name, port)
-						print ("Host detected ", host_name)
-						print (" on port " , port,  " with version " , maj,  "." ,min, " Role:" ,role)
+					(maj, min, host, ver, role, port) = struct.unpack("<BBiiIH", msg[5:21])
+					sdta = msg[21:].split(b'\0')
+					host_name=sdta[0]
+#					if self.state == self.SEARCHING:
+#						print ("Host detected ", host_name)
+#						print (" on port " , port,  " with version " , maj,  "." ,min, " Role:" ,role)
+					self.host = (host_name, port)
+					self.changeState(self.LISTENING)
 			except socket.timeout:
 				self.changeState(self.SEARCHING)
 		self.sock.close()

@@ -38,16 +38,12 @@ encoder = Encoder(17, 27, 22)
 encoder.registerLeftEvent(onEncoderLeft)
 encoder.registerRightEvent(onEncoderRight)
 
-print ("Staring Beacon-finder")
-x = XPlaneBeaconListener()
-x.start()
-
-receiver = 0
 def xplaneDetectChange(stat, host):
 	global receiver
+	print ("Callback function ! Stat is %s" % stat )
 	if stat == XPlaneBeaconListener.LISTENING:
 		(hostname, hostport) = host
-		print ("x-plane host found : %s" % host)
+		print ("x-plane host found : %s" % hostname)
 		receiver = XPlaneReceiver(xp_host=hostname, xp_port=hostport, local_port=hostport)
 		receiver.start()
 	else:
@@ -55,6 +51,14 @@ def xplaneDetectChange(stat, host):
 		if receiver != 0:
 			receiver.stop()
 			receiver = 0
+
+print ("Staring Beacon-finder")
+x = XPlaneBeaconListener()
+x.registerChangeEvent(xplaneDetectChange)
+x.start()
+
+receiver = 0
+
 cont = True
 
 while cont:
