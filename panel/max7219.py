@@ -1,19 +1,17 @@
 import spidev
 import time
-from enum import Enum
 
-
-class Max7219Mode(Enum):
-	TEST=1
-	NORMAL=2
-	SHUTDOWN=4
 
 def get_digit(number, digit):
 	return int(number // 10**digit %10)
 
 
 class Lcd:
-	
+
+	TEST = 1
+	NORMAL = 2
+	SHUTDOWN = 4
+
 	def __init__(self, max_speed_hz, max_displays):
 		self.spi = spidev.SpiDev()
 		self.spi.open(0,0)
@@ -36,10 +34,10 @@ class Lcd:
 		self.spi.writebytes(arr)
 
 	def setMode(self, devno, mode):
-		if mode == Max7219Mode.NORMAL:
+		if mode == Lcd.NORMAL:
 			self.send(devno, [0x0f, 0x00])
 			self.send(devno, [0x0c, 0x01])
-		elif mode == Max7219Mode.TEST:
+		elif mode == Lcd.TEST:
 			self.send(devno, [0x0f, 0x01])
 			self.send(devno, [0x0c, 0x01])
 		else:
@@ -83,16 +81,22 @@ class Lcd:
 				i = i + 1
 			elif v == '-':
 				self.values[devno][i] = 10
+				i = i + 1
 			elif v == 'E':
 				self.values[devno][i] = 11
+				i = i + 1
 			elif v == 'H':
 				self.values[devno][i] = 12
+				i = i + 1
 			elif v == 'L':
 				self.values[devno][i] = 13
+				i = i + 1
 			elif v == 'P':
 				self.values[devno][i] = 14
+				i = i + 1
 			elif v == ' ':
 				self.values[devno][i] = 15
+				i = i + 1
 			elif v == '.':
 				self.values[devno][i-1] = self.values[devno][i-1]+128
 		self.sendAll(devno)

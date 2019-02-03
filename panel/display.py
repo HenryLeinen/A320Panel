@@ -1,5 +1,4 @@
-from max7219 import Lcd
-from max7219 import Max7219Enum
+from panel.max7219 import Lcd
 
 
 class Display:
@@ -22,18 +21,19 @@ class Display:
 
 	def __init__(self):
 		# Setup 2 LCD displays with each having 6 digits
-		self.lcd = Display(400000, 2)
-		self.lcd.setMode(Max7219Enum.NORMAL)
+		self.lcd = Lcd(400000, 2)
+		self.lcd.setMode(0,Lcd.NORMAL)
+		self.lcd.setMode(1,Lcd.NORMAL)
 		self.lcd.setIntensity(0,15)
 		self.lcd.setIntensity(0,15)
 		self.lcd.setMaxDigits(0,7)
-		self.lcd.setMaxDIgits(1,7)
-		self.lcd.setDecodeMode(0,[0,1,2,3,4,5])
-		self.lcd.setDecodeMode(1,[0,1,2,3,4,5])
+		self.lcd.setMaxDigits(1,7)
+		self.lcd.setDecodeModeForDigits(0,[0,1,2,3,4,5])
+		self.lcd.setDecodeModeForDigits(1,[0,1,2,3,4,5])
 		self.lcd.setDigitString(0,"------")
 		self.lcd.setDigitString(1,"------")
-		self.lcd.setDigitValue(0, [6,0])
-		self.lcd.setDigitValue(1, [6,0])
+		self.lcd.setDigitValue(0, 6,0)
+		self.lcd.setDigitValue(1, 6,0)
 
 	def setActiveFrequency(self, freq):
 		self.lcd.setValueString(0,freq)
@@ -42,10 +42,10 @@ class Display:
 		self.lcd.setValueString(1,freq)
 
 	def selectStbyNavMode(self, mode):
-		self.lcd.setDigitValue(0,[6,mode])
+		self.lcd.setDigitValue(0,6,mode)
 
 	def selectActiveMode(self, mode):
-		self.lcd.setDigitValue(1,[6,mode])
+		self.lcd.setDigitValue(1,6,mode)
 
 	def setBrightness(self, b):
 		self.lcd.setIntensity(0,b)
