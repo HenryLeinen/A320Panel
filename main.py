@@ -1,6 +1,6 @@
 from panel.beacon import XPlaneBeaconListener
 from panel.panel import XPlaneReceiver
-
+from panel.max7219 import Lcd
 
 print ("Locating Beacon")
 x = XPlaneBeaconListener()
