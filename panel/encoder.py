@@ -90,38 +90,12 @@ class Encoder:
 		elif channel == self.ENC_BUTTON:
 			if Btn == GPIO.LOW:
 				# Detected a button press
-				EventManager.onBtnPressed()
+				if EventManager.onBtnPressed:
+					EventManager.onBtnPressed()
 			else:
 				# Detected a button release
-				EventManager.onBtnReleased()
-
-#set the GPIO pins for the encoder in BOARD mode
-# so ENC_A is GPIO.17
-ENC_A = 17
-#    ENC_B is GPIO.27
-ENC_B = 27
-#    ENC_BUTTON is GPIO.22
-ENC_BUTTON = 22
-
-encoder = Encoder(ENC_A, ENC_B, ENC_BUTTON)
-
-
-def LeftTurn():
-	print ("Encoder turned left")
-
-def RightTurn():
-	print ("Encoder turned right")
-
-def ButtonPressed():
-	print ("Button pressed")
-
-def ButtonReleased():
-	print ("Button released")
-
-encoder.registerLeftEvent(LeftTurn)
-encoder.registerRightEvent(RightTurn)
-encoder.registerButtonPressedEvent(ButtonPressed)
-encoder.registerButtonReleasedEvent(ButtonReleased)
+				if EventManager.onBtnReleased:
+					EventManager.onBtnReleased()
 
 
 
