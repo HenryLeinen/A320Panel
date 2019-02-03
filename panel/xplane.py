@@ -18,7 +18,7 @@ class XPlaneReceiver(threading.Thread):
 			raise ValueError("Invalid port <xp_port>" + str(xp_port))
 		if local_port < 0 or local_port > 65535:
 			raise ValueError("Invalid port <port>" + str(local_port))
-	
+
 		self.UDP_XPL = (socket.gethostbyname(xp_host), xp_port)
 		self.UDP_LOCAL = ("", local_port)
 
@@ -65,6 +65,8 @@ class XPlaneReceiver(threading.Thread):
 		self.request("sim/cockpit/radios/adf2_stdby_freq_hz")
 		self.request("sim/cockpit/radios/dme_stdby_freq_hz")
 
+		# Buttons on the radio change the mode:
+		# NAV1 = 0, NAV2 = 1, COM1 = 2, COM2 = 3, ADF1 = 4, ADF2 = 5
 		self.request("sim/cockpit/radios/nav_com_adf_mode")
 
 	def parse(self, retvalues):
@@ -84,7 +86,7 @@ class XPlaneReceiver(threading.Thread):
 				pass
 		except Exception as e:
 			print ("Exception caught %s" % str(e))
-			
+
 	def run(self):
 		print ("Binding to ", self.UDP_LOCAL)
 		self.sock.bind(self.UDP_LOCAL)

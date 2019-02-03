@@ -1,10 +1,9 @@
 from panel.beacon import XPlaneBeaconListener
 from panel.xplane import XPlaneReceiver
 from panel.max7219 import Lcd
-from panel.display import Display
 from panel.encoder import Encoder
 from panel.keymatrix import Keyboard
-
+from panel.radio import Radio
 
 
 
@@ -25,8 +24,6 @@ def onEncoderRight():
 
 
 
-print ("Setup display")
-display = Display()
 
 print ("Setup Keyboard")
 keyboard = Keyboard( [0,5,6,13], [4,3,2,19])
@@ -37,6 +34,9 @@ freq = 108.0
 encoder = Encoder(17, 27, 22)
 encoder.registerLeftEvent(onEncoderLeft)
 encoder.registerRightEvent(onEncoderRight)
+
+print ("Starting Radio class")
+radio = Radio()
 
 def xplaneDetectChange(stat, host):
 	global receiver
@@ -53,9 +53,9 @@ def xplaneDetectChange(stat, host):
 			receiver = 0
 
 print ("Staring Beacon-finder")
-x = XPlaneBeaconListener()
-x.registerChangeEvent(xplaneDetectChange)
-x.start()
+beacon = XPlaneBeaconListener()
+beacon.registerChangeEvent(xplaneDetectChange)
+beacon.start()
 
 receiver = 0
 
@@ -69,7 +69,7 @@ while cont:
         cont = False
 
 keyboard.stop()
-x.stop()
+beacon.stop()
 if receiver != 0:
 	receiver.stop()
 print ("Waiting for thread termination")
