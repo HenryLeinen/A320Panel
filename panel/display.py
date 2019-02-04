@@ -36,16 +36,16 @@ class Display:
 		self.lcd.setDigitValue(1, 6,0)
 
 	def setActiveFrequency(self, freq):
-		self.lcd.setValueString(0,freq)
+		self.lcd.setDigitString(0,freq)
 
 	def setStbyFrequency(self, freq):
-		self.lcd.setValueString(1,freq)
+		self.lcd.setDigitString(1,freq)
 
 	def clearActiveFrequency(self):
-		self.lcd.setValueString(0, "      ")
+		self.lcd.setDigitString(0, "      ")
 
 	def clearStbyFrequency(self):
-		self.lcd.setValueString(1, "      ")
+		self.lcd.setDigitString(1, "      ")
 
 	def selectStbyNavMode(self, mode):
 		self.lcd.setDigitValue(0,6,mode)

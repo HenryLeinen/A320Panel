@@ -13,7 +13,7 @@ class Radio:
 
 	def __init__(self):
 		self.active = True
-		self.Mode = MODE_NAV1
+		self.Mode = Radio.MODE_NAV1
 		self.nav1_freq_hz = 108.000
 		self.nav2_freq_hz = 108.000
 		self.com1_freq_hz = 108.000
@@ -32,6 +32,14 @@ class Radio:
 		self.display.clearActiveFrequency()
 		self.display.clearStbyFrequency()
 
+	def setActiveNav1(self, freq ):
+		self.nav1_freq_hz = freq
+		print ("New NAV1_FREQ_HZ received %03.3f" % freq)
+
+	def setActiveAdf1(self, freq ):
+		self.adf1_freq_hz = freq
+		print ("New ADF1_FREQ_HZ received %03.3f" % freq)
+		
 	def setMode(self, mode):
 		if mode == self.MODE_NAV1:
 			self.display.setActiveFrequency(self.nav1_freq_hz)
