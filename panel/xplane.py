@@ -24,6 +24,8 @@ class XPlaneReceiver(threading.Thread):
 
 		self.xplaneValues = {}
 
+		self.callbacks = {}	# Dictionary stores for each key a callback function
+
 	def request(self, dataref, freq=None):
 		# check if frequency is deault (not provided)
 		if freq == None:
@@ -50,13 +52,13 @@ class XPlaneReceiver(threading.Thread):
 		self.sock.sendto(message, self.UDP_XPL)
 
 	def do_request(self):
-		self.request("sim/cockpit/radios/nav1_freq_hz")
-		self.request("sim/cockpit/radios/nav2_freq_hz")
-		self.request("sim/cockpit/radios/com1_freq_hz")
-		self.request("sim/cockpit/radios/com2_freq_hz")
-		self.request("sim/cockpit/radios/adf1_freq_hz")
-		self.request("sim/cockpit/radios/adf2_freq_hz")
-		self.request("sim/cockpit/radios/dme_freq_hz")
+		self.request("sim/cockpit/radios/nav1_freq_hz", 10)
+		self.request("sim/cockpit/radios/nav2_freq_hz",2)
+		self.request("sim/cockpit/radios/com1_freq_hz",2)
+		self.request("sim/cockpit/radios/com2_freq_hz",2)
+		self.request("sim/cockpit/radios/adf1_freq_hz",10)
+		self.request("sim/cockpit/radios/adf2_freq_hz",10)
+		self.request("sim/cockpit/radios/dme_freq_hz",10)
 		self.request("sim/cockpit/radios/nav1_stdby_freq_hz")
 		self.request("sim/cockpit/radios/nav2_stdby_freq_hz")
 		self.request("sim/cockpit/radios/com1_stdby_freq_hz")
@@ -81,11 +83,21 @@ class XPlaneReceiver(threading.Thread):
 						print ("Value " + idx + " has changed from " + str(orgval) + " to " + str(newval))
 						# trigger change
 						self.xplaneValues[idx] = newval
+						# call callback function if one is configured
+						if idx in self.callbacks.keys():
+							print ("Calling callback for %s" %idx)
+							self.callbacks[idx](newval)
+						else:
+							print ("No callback for %s" %idx)
 				else:
 					self.xplaneValues[idx] = newval
 				pass
 		except Exception as e:
 			print ("Exception caught %s" % str(e))
+
+	def setCallback(self, var, cbk):
+		# check if the variable is already registered
+		self.callbacks[var] = cbk
 
 	def run(self):
 		print ("Binding to ", self.UDP_LOCAL)

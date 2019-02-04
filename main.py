@@ -45,6 +45,8 @@ def xplaneDetectChange(stat, host):
 		(hostname, hostport) = host
 		print ("x-plane host found : %s" % hostname)
 		receiver = XPlaneReceiver(xp_host=hostname, xp_port=hostport, local_port=hostport)
+		receiver.setCallback("sim/cockpit/radios/nav1_freq_hz", radio.setActiveNav1)
+		receiver.setCallback("sim/cockpit/radios/adf1_freq_hz", radio.setActiveAdf1)
 		receiver.start()
 	else:
 		print ("x-plane signal lost ")
