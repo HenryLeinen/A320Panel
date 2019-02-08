@@ -25,6 +25,7 @@ class Lcd:
 
 
 	def send(self, devno, b):
+#		print ("***Lcd.send(devno={}, b={}".format(devno, b))
 		arr = []
 		for i in range(self.max_displays):
 			if i== devno:
@@ -63,6 +64,7 @@ class Lcd:
 		self.sendAll(devno)
 
 	def sendAll(self, devno):
+#		print ("***Lcd.sendAll(devno={})".format(devno))
 		for i in range(8):
 			self.send(devno, [i+1, self.values[devno][i]])
 
@@ -73,11 +75,12 @@ class Lcd:
 
 	def setDigitString(self, devno, dv):
 		i = 0
-		print (dv)
+#		print("***Lcd.setDigitString (devno={}, dv={})".format(devno, dv))
 		for v in dv:
-			if v in range(0,9):
+#			print("****v={} (ord={})".format(v,ord(v)))
+			if ord(v) in range(ord('0'),ord('9')+1):
 				self.values[devno][i] = ord(v)-48
-				print (i, v)
+#				print (i, v)
 				i = i + 1
 			elif v == '-':
 				self.values[devno][i] = 10
@@ -99,6 +102,8 @@ class Lcd:
 				i = i + 1
 			elif v == '.':
 				self.values[devno][i-1] = self.values[devno][i-1]+128
+#				print (i, v)
+#		print ("*****", self.values[devno])
 		self.sendAll(devno)
 
 	def close(self):

@@ -2,26 +2,26 @@ import RPi.GPIO as GPIO
 import time
 import threading
 
-# mapping info
-BTN_NAV = 0x32
-BTN_VOR = 0x22
-BTN_ILS = 0x02
-BTN_MLS = 0x12
-
-BTN_HF1 = 0x31
-BTN_SEL = 0x21
-BTN_HF2 = 0x01
-BTN_AM  = 0x11
-
-BTN_VHF1= 0x30
-BTN_VHF2= 0x20
-BTN_VHF3= 0x00
-BTN_XCHG= 0x10
-
-BTN_ADF = 0x03
-BTN_BFO = 0x13
 
 class Keyboard(threading.Thread):
+	# mapping info
+	BTN_NAV = 0x32
+	BTN_VOR = 0x22
+	BTN_ILS = 0x02
+	BTN_MLS = 0x12
+
+	BTN_HF1 = 0x31
+	BTN_SEL = 0x21
+	BTN_HF2 = 0x01
+	BTN_AM  = 0x11
+
+	BTN_VHF1= 0x30
+	BTN_VHF2= 0x20
+	BTN_VHF3= 0x00
+	BTN_XCHG= 0x10
+
+	BTN_ADF = 0x03
+	BTN_BFO = 0x13
 
 	def __init__(self, cols, rows):
 		threading.Thread.__init__(self)
@@ -41,6 +41,12 @@ class Keyboard(threading.Thread):
 		self.maxcol = self.col+1
 
 		self.active = True
+		self.callbackPressed = 0
+		self.callbackReleased = 0
+
+	def registerCallbacks(self, cbkPressed, cbkReleased):
+		self.callbackPressed = cbkPressed
+		self.callbackReleased = cbkReleased
 
 	def updateStatus(self, col, rows):
 		for idx, r in enumerate(rows):
@@ -48,8 +54,12 @@ class Keyboard(threading.Thread):
 				self.keys[col][idx] = r
 				kk = (col << 4) + idx
 				if r == GPIO.LOW:
+					if self.callbackPressed != 0:
+						self.callbackPressed(kk)
 					print ("Key %02x was pressed" % kk)
 				else:
+					if self.callbackReleased != 0:
+						self.callbackReleased(kk)
 					print ("Key %02x was released" % kk)
 
 
@@ -72,6 +82,7 @@ class Keyboard(threading.Thread):
 			self.updateStatus(self.col, rr)
 
 	def stop(self):
+		print ("*** Keyboard terminating")
 		self.active = False
 
 

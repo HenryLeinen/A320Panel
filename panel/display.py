@@ -4,20 +4,20 @@ from panel.max7219 import Lcd
 class Display:
 
 # Display 1 Mapping
-	NAV = 2
-	VOR = 1
-	ILS = 4
-	MLS = 8
-	ADF = 16
-	BFO = 32
+	NAV = 4
+	VOR = 2
+	ILS = 8
+	MLS = 16
+	ADF = 32
+	BFO = 64
 
 # Display 2 Mapping
-	VHF1 = 1
+	VHF1 = 16
 	VHF2 = 2
-	VHF3 = 4
+	VHF3 = 32
 	HF1  = 8
-	HF2  = 16
-	AM   = 32
+	HF2  = 4
+	AM   = 64
 
 	def __init__(self):
 		# Setup 2 LCD displays with each having 6 digits
@@ -25,7 +25,7 @@ class Display:
 		self.lcd.setMode(0,Lcd.NORMAL)
 		self.lcd.setMode(1,Lcd.NORMAL)
 		self.lcd.setIntensity(0,15)
-		self.lcd.setIntensity(0,15)
+		self.lcd.setIntensity(1,15)
 		self.lcd.setMaxDigits(0,7)
 		self.lcd.setMaxDigits(1,7)
 		self.lcd.setDecodeModeForDigits(0,[0,1,2,3,4,5])
@@ -36,10 +36,12 @@ class Display:
 		self.lcd.setDigitValue(1, 6,0)
 
 	def setActiveFrequency(self, freq):
-		self.lcd.setDigitString(0,freq)
+#		print("***Display.setActiveFrequency {:03.3f}".format(freq))
+		self.lcd.setDigitString(0, '{:03.3f}'.format(freq))
 
 	def setStbyFrequency(self, freq):
-		self.lcd.setDigitString(1,freq)
+#		print("***Display.setStbyFrequency {:03.3f}".format(freq))
+		self.lcd.setDigitString(1,'{:03.3f}'.format(freq))
 
 	def clearActiveFrequency(self):
 		self.lcd.setDigitString(0, "      ")

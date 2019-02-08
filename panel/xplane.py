@@ -51,6 +51,14 @@ class XPlaneReceiver(threading.Thread):
 		assert(len(message)==413)
 		self.sock.sendto(message, self.UDP_XPL)
 
+	def sendValue(self, dataref, value):
+		cmd = b"DREF\x00"
+		string = dataref.encode()
+		message = struct.pack("<5sf500s", cmd, value, string)
+		print ("Sending " + dataref + " with value " + str(value))
+		assert(len(message)==509)
+		self.sock.sendto(message, self.UDP_XPL)
+
 	def do_request(self):
 		self.request("sim/cockpit/radios/nav1_freq_hz", 10)
 		self.request("sim/cockpit/radios/nav2_freq_hz",2)
@@ -86,7 +94,7 @@ class XPlaneReceiver(threading.Thread):
 						# call callback function if one is configured
 						if idx in self.callbacks.keys():
 							print ("Calling callback for %s" %idx)
-							self.callbacks[idx](newval)
+							self.callbacks[idx](idx, newval)
 						else:
 							print ("No callback for %s" %idx)
 				else:
@@ -149,6 +157,7 @@ class XPlaneReceiver(threading.Thread):
 
 
 	def stop(self):
+		print ("*** xplaneReceiver terminating")
 		self.active = False
 
 
