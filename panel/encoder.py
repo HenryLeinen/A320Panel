@@ -61,7 +61,7 @@ class Encoder:
 		GPIO.setup(self.ENC_B, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 		GPIO.setup(self.ENC_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 		GPIO.add_event_detect(self.ENC_A, GPIO.BOTH, callback=self.pinChanged, bouncetime=20)
-		#GPIO.add_event_detect(ENC_B, GPIO.BOTH, callback=pin_low, bouncetime=300)
+		GPIO.add_event_detect(self.ENC_B, GPIO.BOTH, callback=self.pinChanged, bouncetime=20)
 		GPIO.add_event_detect(self.ENC_BUTTON, GPIO.BOTH, callback=self.pinChanged, bouncetime=200)
 
 	def registerLeftEvent(self, func):
@@ -87,6 +87,13 @@ class Encoder:
 			else :
 				# Detected a left turn
 				EventManager.onLeft()
+		elif channel == self.ENC_B:
+			if (Clk == GPIO.LOW and Dir == GPIO.HIGH) or (Clk == GPIO.HIGH and Dir == GPIO.LOW):
+				# Detected a left turn
+				EventManager.onLeft()
+			else:
+				# Detected a right turn
+				EventManager.onRight()
 		elif channel == self.ENC_BUTTON:
 			if Btn == GPIO.LOW:
 				# Detected a button press

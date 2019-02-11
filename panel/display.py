@@ -22,10 +22,8 @@ class Display:
 	def __init__(self):
 		# Setup 2 LCD displays with each having 6 digits
 		self.lcd = Lcd(400000, 2)
-		self.lcd.setMode(0,Lcd.NORMAL)
-		self.lcd.setMode(1,Lcd.NORMAL)
-		self.lcd.setIntensity(0,15)
-		self.lcd.setIntensity(1,15)
+		self.lcd.setModeAll(Lcd.NORMAL)
+		self.lcd.setIntensityAll(15)
 		self.lcd.setMaxDigits(0,7)
 		self.lcd.setMaxDigits(1,7)
 		self.lcd.setDecodeModeForDigits(0,[0,1,2,3,4,5])
@@ -34,13 +32,14 @@ class Display:
 		self.lcd.setDigitString(1,"------")
 		self.lcd.setDigitValue(0, 6,0)
 		self.lcd.setDigitValue(1, 6,0)
+		self.brightness = 15
 
 	def setActiveFrequency(self, freq):
 #		print("***Display.setActiveFrequency {:03.3f}".format(freq))
 		self.lcd.setDigitString(0, '{:03.3f}'.format(freq))
 
 	def setStbyFrequency(self, freq):
-#		print("***Display.setStbyFrequency {:03.3f}".format(freq))
+		print("***Display.setStbyFrequency {:03.3f}".format(freq))
 		self.lcd.setDigitString(1,'{:03.3f}'.format(freq))
 
 	def clearActiveFrequency(self):
@@ -56,6 +55,12 @@ class Display:
 		self.lcd.setDigitValue(1,6,mode)
 
 	def setBrightness(self, b):
-		self.lcd.setIntensity(0,b)
-		self.lcd.setIntensity(1,b)
+		self.brightness = b
+		self.lcd.setIntensityAll(b)
+
+	def enable(self, ena):
+		if ena :
+			self.lcd.setModeAll(Lcd.NORMAL)
+		else:
+			self.lcd.setModeAll(Lcd.SHUTDOWN)
 

@@ -25,14 +25,32 @@ class Lcd:
 
 
 	def send(self, devno, b):
-#		print ("***Lcd.send(devno={}, b={}".format(devno, b))
 		arr = []
 		for i in range(self.max_displays):
 			if i== devno:
 				arr = arr + b
 			else:
 				arr = arr + [0x00, 0x00]
+#		print ("***Lcd.send(devno={}, b={}, arr={}".format(devno, b, arr))
 		self.spi.writebytes(arr)
+
+	def sendToAll(self, b):
+		arr = []
+		for i in range(self.max_displays):
+			arr = arr + b
+#		print ("***Lcd.sendAll(b={}, arr={}".format(b, arr))
+		self.spi.writebytes(arr)
+
+	def setModeAll(self, mode):
+		if mode == Lcd.NORMAL:
+			self.sendToAll([0x0c,0x01])
+			self.sendToAll([0x0f,0x00])
+		elif mode == Lcd.TEST:
+			self.sendToAll([0x0f,0x01])
+			self.sendToAll([0x0c,0x01])
+		else:
+			self.sendToAll([0x0c,0x00])
+			self.sendToAll([0x0f,0x00])
 
 	def setMode(self, devno, mode):
 		if mode == Lcd.NORMAL:
@@ -44,6 +62,9 @@ class Lcd:
 		else:
 			self.send(devno, [0x0f, 0x00])
 			self.send(devno, [0x0c, 0x00])
+
+	def setIntensityAll(self, intensity):
+		self.sendToAll([0x0a, intensity])
 
 	def setIntensity(self, devno, intensity):
 		self.send(devno, [0x0a, intensity])

@@ -3,16 +3,18 @@ from panel.max7219 import Lcd
 from panel.encoder import Encoder
 from panel.xplane import XPlaneReceiver
 from panel.keymatrix import Keyboard
-
+from panel.onoffswitch import OnOffSwitch
 
 class Radio:
 
-	MODE_NAV1 = 0
-	MODE_NAV2 = 1
+	MODE_NAV1 = 0			# ILS
+	MODE_NAV2 = 1			# VOR
 	MODE_COM1 = 2
 	MODE_COM2 = 3
-	MODE_ADF1 = 4
-	MODE_ADF2 = 5
+	MODE_COM3 = 15			# no standard x-plane value known
+	MODE_ADF1 = 4			# MLS
+	MODE_ADF2 = 5			# ADF2
+	MODE_MLF = 16			# no standard x-plane value known
 	MODE_OFF  = 10
 
 
@@ -20,20 +22,26 @@ class Radio:
 		self.active = True
 		# set the radio mode to MODE_NAV1 per default
 		self.Mode = Radio.MODE_NAV1
+		# set the increment mode : a value of zero means a small increment on rotary encoder changes, a value of 1 means large increments
+		self.incMode = 0
 		# setup a dictionary of radio frequency values as x-plane keys with their frequencies
 		self.variables = {  "sim/cockpit/radios/nav1_freq_hz":10800, 
 							"sim/cockpit/radios/nav2_freq_hz":10800,
 							"sim/cockpit/radios/com1_freq_hz":10820,
 							"sim/cockpit/radios/com2_freq_hz":10820,
+							"sim/cockpit/radios/com3_freq_hz":10830,
 							"sim/cockpit/radios/adf1_freq_hz":33800,
 							"sim/cockpit/radios/adf2_freq_hz":33900,
+							"sim/cockpit/radios/mls_freq_hz":33900,
 							"sim/cockpit/radios/dme_freq_hz":10900,
 							"sim/cockpit/radios/nav1_stdby_freq_hz":10810,
 							"sim/cockpit/radios/nav2_stdby_freq_hz":10810,
 							"sim/cockpit/radios/com1_stdby_freq_hz":10830,
 							"sim/cockpit/radios/com2_stdby_freq_hz":10830,
+							"sim/cockpit/radios/com3_stdby_freq_hz":10830,
 							"sim/cockpit/radios/adf1_stdby_freq_hz":34000,
 							"sim/cockpit/radios/adf2_stdby_freq_hz":34010,
+							"sim/cockpit/radios/mlf_stdby_freq_hz":34020,
 							"sim/cockpit/radios/dme_stdby_freq_hz":10810
 							}
 		# create the display (LCD + LEDs) device
@@ -42,36 +50,52 @@ class Radio:
 		self.encoder = Encoder(17, 27, 22)
 		self.encoder.registerLeftEvent(self.onEncoderLeft)
 		self.encoder.registerRightEvent(self.onEncoderRight)
+		self.encoder.registerButtonPressedEvent(self.onEncoderButtonPressed)
 		# initialize an empty receiver. the receiver can only be created once a hostname and a port is known
 		self.receiver = 0
 		# setup the keyboard and register the callback
 		self.keyboard = Keyboard( [0,5,6,13], [4,3,2,19])
 		self.keyboard.registerCallbacks(self.onKeyPressed, 0)
 		self.keyboard.start()
+		# setup the OnOffSwitch
+		self.OnOff = OnOffSwitch(26, self.OnOffChanged)
+		self.OnOffChanged(self.OnOff.getState())
 
+	def OnOffChanged(self, newval):
+		if newval == 0:
+			# switch the panel off
+			self.display.enable(False)
+		else:
+			# switch the panel on
+			self.display.enable(True)
 
 	def onKeyPressed(self, key):
+		if self.OnOff.getState() == False:
+			return
 		if key == Keyboard.BTN_VHF1:
 			self.Mode = self.MODE_COM1
 		elif key == Keyboard.BTN_VHF2:
 			self.Mode = self.MODE_COM2
 		elif key == Keyboard.BTN_VOR:
-			self.Mode = self.MODE_NAV1
-		elif key == Keyboard.BTN_ILS:
 			self.Mode = self.MODE_NAV2
+		elif key == Keyboard.BTN_ILS:
+			self.Mode = self.MODE_NAV1
 		elif key == Keyboard.BTN_ADF:
-			self.Mode = self.MODE_ADF1
-		elif key == Keyboard.BTN_MLS:
 			self.Mode = self.MODE_ADF2
+		elif key == Keyboard.BTN_MLS:
+			self.Mode = self.MODE_ADF1
 		elif key == Keyboard.BTN_XCHG:
 			# exchange standby frequency with active frequency
 			freq = self.getActiveFrequency()
 			freq_2 = self.getStandbyFrequency()
 			self.setActiveFrequency(freq_2)
 			self.setStandbyFrequency(freq)
-			self.receiver.sendValue(self.getActiveFrequencyKey(), freq_2)
-			self.receiver.sendValue(self.getStandbyFrequencyKey(), freq)
-		self.receiver.sendValue("sim/cockpit/radios/nav_com_adf_mode", self.Mode)
+			if self.receiver != 0:
+				self.receiver.sendValue(self.getActiveFrequencyKey(), freq_2)
+				self.receiver.sendValue(self.getStandbyFrequencyKey(), freq)
+		if self.receiver != 0:
+			self.receiver.sendValue("sim/cockpit/radios/nav_com_adf_mode", self.Mode)
+		self.update()
 
 	def startReceiver(self, hostname, hostport):
 		# create a new receiver object for the provided host and register the callback to be informed about incoming value updates
@@ -145,8 +169,13 @@ class Radio:
 		self.variables[self.getActiveFrequencyKey()] = freq
 
 	def onEncoderLeft(self):
+		if self.OnOff.getState() == False:
+			return
 		# Decrement the frequency
-		incr = -5
+		if self.incMode == 0:
+			incr = -5
+		else:
+			incr = -100
 		maxfreq = 11800
 		minfreq = 10800
 		if self.Mode == self.MODE_NAV1:
@@ -163,19 +192,27 @@ class Radio:
 			key = "sim/cockpit/radios/com1_stdby_freq_hz"
 		elif self.Mode == self.MODE_COM2:
 			key = "sim/cockpit/radios/com2_stdby_freq_hz"
+		elif self.Mode == self.MODE_COM3:
+			key = "sim/cockpit/radios/com3_stdby_freq_hz"
 		freq = self.variables[key] + incr
 		if freq < minfreq:
 			freq = maxfreq
 		elif freq > maxfreq:
 			freq = minfreq
-		print ("*** New value {} is {}".format(key, freq))
+#		print ("*** New value {} is {}".format(key, freq))
 		self.variables[key] = freq
 		if self.receiver != 0:
 			self.receiver.sendValue(key, freq)
+		self.update()
 
 	def onEncoderRight(self):
+		if self.OnOff.getState() == False:
+			return
 		# Increment the frequency
-		incr = 5
+		if self.incMode == 0:
+			incr = 5
+		else:
+			incr = 100
 		maxfreq = 11800
 		minfreq = 10800
 		if self.Mode == self.MODE_NAV1:
@@ -192,15 +229,27 @@ class Radio:
 			key = "sim/cockpit/radios/com1_stdby_freq_hz"
 		elif self.Mode == self.MODE_COM2:
 			key = "sim/cockpit/radios/com2_stdby_freq_hz"
+		elif self.Mode == self.MODE_COM3:
+			key = "sim/cockpit/radios/com3_stdby_freq_hz"
 		freq = self.variables[key] + incr
 		if freq < minfreq:
 			freq = maxfreq
 		elif freq > maxfreq:
 			freq = minfreq
-		print ("*** New value {} is {}".format(key, freq))
+#		print ("*** New value {} is {}".format(key, freq))
 		self.variables[key] = freq
 		if self.receiver != 0:
 			self.receiver.sendValue(key, freq)
+		# Call setMode in order to display the new values
+		self.update()
+
+	def onEncoderButtonPressed(self):
+		if self.OnOff.getState() == False:
+			return
+		if self.incMode == 0:
+			self.incMode = 1
+		else:
+			self.incMode = 0
 
 	def setBrightness(self, key, value):
 		if key == "sim/cockpit/electrical/instrument_brightness":
@@ -225,28 +274,28 @@ class Radio:
 	def setMode(self, mode):
 		print ("Mode is now %d" % mode)
 		if mode == self.MODE_NAV1:
-			self.display.setActiveFrequency(self.variables["sim/cockpit/radios/nav1_freq_hz"]/100)
-			self.display.setStbyFrequency(self.variables["sim/cockpit/radios/nav1_stdby_freq_hz"] / 100)
-			self.display.selectActiveMode(Display.NAV)
+			self.display.setActiveFrequency(float(self.variables["sim/cockpit/radios/nav1_freq_hz"])/100)
+			self.display.setStbyFrequency(float(self.variables["sim/cockpit/radios/nav1_stdby_freq_hz"]) / 100)
+			self.display.selectActiveMode(Display.ILS)
 		elif mode == self.MODE_NAV2:
-			self.display.setActiveFrequency(self.variables["sim/cockpit/radios/nav2_freq_hz"] / 100)
-			self.display.setStbyFrequency(self.variables["sim/cockpit/radios/nav2_stdby_freq_hz"] / 100)
+			self.display.setActiveFrequency(float(self.variables["sim/cockpit/radios/nav2_freq_hz"]) / 100)
+			self.display.setStbyFrequency(float(self.variables["sim/cockpit/radios/nav2_stdby_freq_hz"]) / 100)
 			self.display.selectActiveMode(Display.VOR)
 		elif mode == self.MODE_COM1:
-			self.display.setActiveFrequency(self.variables["sim/cockpit/radios/com1_freq_hz"] / 100)
-			self.display.setStbyFrequency(self.variables["sim/cockpit/radios/com1_stdby_freq_hz"] / 100)
+			self.display.setActiveFrequency(float(self.variables["sim/cockpit/radios/com1_freq_hz"]) / 100)
+			self.display.setStbyFrequency(float(self.variables["sim/cockpit/radios/com1_stdby_freq_hz"]) / 100)
 			self.display.selectStbyNavMode(Display.VHF1)
 		elif mode == self.MODE_COM2:
-			self.display.setActiveFrequency(self.variables["sim/cockpit/radios/com2_freq_hz"] / 100)
-			self.display.setStbyFrequency(self.variables["sim/cockpit/radios/com2_stdby_freq_hz"] / 100)
+			self.display.setActiveFrequency(float(self.variables["sim/cockpit/radios/com2_freq_hz"]) / 100)
+			self.display.setStbyFrequency(float(self.variables["sim/cockpit/radios/com2_stdby_freq_hz"]) / 100)
 			self.display.selectStbyNavMode(Display.VHF2)
 		elif mode == self.MODE_ADF1:
-			self.display.setActiveFrequency(self.variables["sim/cockpit/radios/adf1_freq_hz"])
-			self.display.setStbyFrequency(self.variables["sim/cockpit/radios/adf1_stdby_freq_hz"])
+			self.display.setActiveFrequency(float(self.variables["sim/cockpit/radios/adf1_freq_hz"]))
+			self.display.setStbyFrequency(float(self.variables["sim/cockpit/radios/adf1_stdby_freq_hz"]))
 			self.display.selectActiveMode(Display.MLS)
 		elif mode == self.MODE_ADF2:
-			self.display.setActiveFrequency(self.variables["sim/cockpit/radios/adf2_freq_hz"])
-			self.display.setStbyFrequency(self.variables["sim/cockpit/radios/adf2_stdby_freq_hz"])
+			self.display.setActiveFrequency(float(self.variables["sim/cockpit/radios/adf2_freq_hz"]))
+			self.display.setStbyFrequency(float(self.variables["sim/cockpit/radios/adf2_stdby_freq_hz"]))
 			self.display.selectActiveMode(Display.ADF)
 		else:
 			self.display.clearActiveFrequency()
@@ -254,8 +303,53 @@ class Radio:
 			self.display.selectActiveMode(Display.CLR)
 			self.display.selectStbyNavMode(Display.CLR)
 
+	# Update the displays and the LEDs
+	def update(self):
+		if self.Mode == self.MODE_NAV1:
+			print ("Mode is ILS")
+			self.display.setActiveFrequency(float(self.variables["sim/cockpit/radios/nav1_freq_hz"])/100)
+			self.display.setStbyFrequency(float(self.variables["sim/cockpit/radios/nav1_stdby_freq_hz"]) / 100)
+			self.display.selectActiveMode(Display.ILS)
+		elif self.Mode == self.MODE_NAV2:
+			print ("Mode is VOR")
+			self.display.setActiveFrequency(float(self.variables["sim/cockpit/radios/nav2_freq_hz"]) / 100)
+			self.display.setStbyFrequency(float(self.variables["sim/cockpit/radios/nav2_stdby_freq_hz"] )/ 100)
+			self.display.selectActiveMode(Display.VOR)
+		elif self.Mode == self.MODE_COM1:
+			print ("Mode is VHF1")
+			self.display.setActiveFrequency(float(self.variables["sim/cockpit/radios/com1_freq_hz"]) / 100)
+			self.display.setStbyFrequency(float(self.variables["sim/cockpit/radios/com1_stdby_freq_hz"]) / 100)
+			self.display.selectStbyNavMode(Display.VHF1)
+		elif self.Mode == self.MODE_COM2:
+			print ("Mode is VHF2")
+			self.display.setActiveFrequency(float(self.variables["sim/cockpit/radios/com2_freq_hz"]) / 100)
+			self.display.setStbyFrequency(float(self.variables["sim/cockpit/radios/com2_stdby_freq_hz"]) / 100)
+			self.display.selectStbyNavMode(Display.VHF2)
+		elif self.Mode == self.MODE_COM3:
+			print ("Mode is VHF3")
+			self.display.setActiveFrequency(float(self.variables["sim/cockpit/radios/com3_freq_hz"]) / 100)
+			self.display.setStbyFrequency(float(self.variables["sim/cockpit/radios/com3_stdby_freq_hz"]) / 100)
+			self.display.selectStbyNavMode(Display.VHF3)
+		elif self.Mode == self.MODE_ADF1:
+			print ("Mode is MLS")
+			self.display.setActiveFrequency(float(self.variables["sim/cockpit/radios/adf1_freq_hz"]))
+			self.display.setStbyFrequency(float(self.variables["sim/cockpit/radios/adf1_stdby_freq_hz"]))
+			self.display.selectActiveMode(Display.MLS)
+		elif self.Mode == self.MODE_ADF2:
+			print ("Mode is ADF")
+			self.display.setActiveFrequency(float(self.variables["sim/cockpit/radios/adf2_freq_hz"]))
+			self.display.setStbyFrequency(float(self.variables["sim/cockpit/radios/adf2_stdby_freq_hz"]))
+			self.display.selectActiveMode(Display.ADF)
+		else:
+			self.display.clearActiveFrequency()
+			self.display.clearStbyFrequency()
+			self.display.selectActiveMode(Display.CLR)
+			self.display.selectStbyNavMode(Display.CLR)
+
+
 	def stop(self):
 		self.keyboard.stop()
-		self.receiver.stop()
+		if self.receiver != 0:
+			self.receiver.stop()
 		print ("*** Radio terminating")
 
