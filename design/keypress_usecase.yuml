@@ -1,0 +1,10 @@
+// {type:sequence}
+[User]pressButton>[class Keyboard]
+[User]-[note:User presses any button]
+[class Keyboard]callback(Pressed)>>[class Radio]
+[class Keyboard]-[note:Keyboard informs via previously registered callbacks]
+[class Radio]sendUpdate>[class XPlaneReceiver]
+[class Radio]-[note:In case a mode change occured, the radio will inform the remote x-plane instance about a change of a DataRef]
+[class XPlaneReceiver]UDP("DREF")>[x-plane]
+[x-plane]UDP("RREF mode").>[class XPlaneReceiver]
+[x-plane]-[note:In case it is configured, the XPlaneReceiver can react on the 'reflected' mode changes.]

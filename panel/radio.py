@@ -348,6 +348,7 @@ class Radio:
 
 
 	def stop(self):
+		self.display.enable(False)
 		self.keyboard.stop()
 		if self.receiver != 0:
 			self.receiver.stop()

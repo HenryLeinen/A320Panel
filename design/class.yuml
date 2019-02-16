@@ -1,0 +1,12 @@
+// {type:class}
+// {direction:topDown}
+[note: You can stick notes on diagrams too!{bg:cornsilk}]
+[radio]-1>[Encoder|registerLeftEvent();registerRightEvent();registerButtonPressedEvent();registerButtonReleasedEvent()]
+[radio]-1>[Display|brightness;NAV;VOR;ILS;MLS;ADF;BFO;VHF1;VHF2;VHF3;HF1;HF2;AM|setActiveFrequency();setStbyFrequency();clearActiveFrequency();clearStbyFrequency();selectStbyNavMode();selectActiveMode();setBrightness();enable()]
+[radio]-1>[Keyboard(thread)|registerCallbacks();stop()]
+[radio]-1>[OnOffSwitch|pinChanged();getState()]
+[Display]-1>[Lcd|spi;max_displays|setDecodeModeForDigits();setMaxDigits();setDigitValue();setDigitValues();setDigitString()|setMode();setModeAll();setIntensity();setIntensityAll();close()]
+[radio]-1>[XPlaneReceiver(thread)|setCallback();stop()]
+[Encoder]-1>[EventManager|addEvent()]
+
+[XPlaneBeaconListener(thread)|state;sock;callback;SEARCHING;LISTENING|registerChangeEvent();stop()]
