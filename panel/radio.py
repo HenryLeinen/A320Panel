@@ -4,6 +4,7 @@ from panel.encoder import Encoder
 from panel.xplane import XPlaneReceiver
 from panel.keymatrix import Keyboard
 from panel.onoffswitch import OnOffSwitch
+from panel.config import ConfigFile
 
 class Radio:
 
@@ -24,6 +25,8 @@ class Radio:
 		self.Mode = Radio.MODE_NAV1
 		# set the increment mode : a value of zero means a small increment on rotary encoder changes, a value of 1 means large increments
 		self.incMode = 0
+		# setup the config file
+		self.cfg = ConfigFile()
 		# setup a dictionary of radio frequency values as x-plane keys with their frequencies
 		self.variables = {  "sim/cockpit/radios/nav1_freq_hz":10800, 
 							"sim/cockpit/radios/nav2_freq_hz":10800,
@@ -352,5 +355,6 @@ class Radio:
 		self.keyboard.stop()
 		if self.receiver != 0:
 			self.receiver.stop()
-		print ("*** Radio terminating")
+		self.cfg.close()
+		print ("*** Radio terminated")
 
