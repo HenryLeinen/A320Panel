@@ -1,5 +1,5 @@
 // {type:sequence}
-[User]pressButton>[class Keyboard]
+[User}]pressButton>[class Keyboard]
 [User]-[note:User presses any button]
 [class Keyboard]callback(Pressed)>>[class Radio]
 [class Keyboard]-[note:Keyboard informs via previously registered callbacks]
