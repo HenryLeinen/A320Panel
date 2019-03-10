@@ -26,21 +26,20 @@ class Display:
 		self.lcd.setIntensityAll(15)
 		self.lcd.setMaxDigits(0,7)
 		self.lcd.setMaxDigits(1,7)
-		self.lcd.setDecodeModeForDigits(0,[0,1,2,3,4,5])
-		self.lcd.setDecodeModeForDigits(1,[0,1,2,3,4,5])
+#		self.lcd.setDecodeModeForDigits(0,[0,1,2,3,4,5])
+#		self.lcd.setDecodeModeForDigits(1,[0,1,2,3,4,5])
 		self.lcd.setDigitString(0,"------")
 		self.lcd.setDigitString(1,"------")
 		self.lcd.setDigitValue(0, 6,0)
 		self.lcd.setDigitValue(1, 6,0)
 		self.brightness = 15
 
-	def setActiveFrequency(self, freq):
-#		print("***Display.setActiveFrequency {:03.3f}".format(freq))
-		self.lcd.setDigitString(0, '{:03.3f}'.format(freq))
+	def setStandbyText(self, fmt_string, val):
+		self.lcd.setDigitString(1, fmt_string.format(val))
 
-	def setStbyFrequency(self, freq):
-		print("***Display.setStbyFrequency {:03.3f}".format(freq))
-		self.lcd.setDigitString(1,'{:03.3f}'.format(freq))
+	def setActiveText(self, fmt_string, val):
+		self.lcd.setDigitString(0, fmt_string.format(val))
+
 
 	def clearActiveFrequency(self):
 		self.lcd.setDigitString(0, "      ")
@@ -49,10 +48,10 @@ class Display:
 		self.lcd.setDigitString(1, "      ")
 
 	def selectStbyNavMode(self, mode):
-		self.lcd.setDigitValue(0,6,mode)
+		self.lcd.setDigitValue(0,6,mode, True)
 
 	def selectActiveMode(self, mode):
-		self.lcd.setDigitValue(1,6,mode)
+		self.lcd.setDigitValue(1,6,mode, True)
 
 	def setBrightness(self, b):
 		self.brightness = b

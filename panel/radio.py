@@ -88,6 +88,24 @@ class Radio:
 			"com1_stdby_freq": 1.0,
 			"com2_stdby_freq": 1.0
 		}
+		self.fmt_string = {
+			"vor_freq":			' {:03.2f}',
+			"vor_stdby_freq":	' {:03.2f}',
+			"vor_course":		'C-{:03f}',
+			"ils_freq": 		' {:03.2f}',
+			"ils_stdby_freq": 	' {:03.2f}',
+			"ils_course": 		'C-{:03f}',
+			"adf1_freq": 		' {:04.1f}',
+			"adf1_stdby_freq": 	' {:04.1f}',
+			"adf2_freq": 		' {:04.1f}',
+			"adf2_stdby_freq": 	' {:04.1f}',
+			"com1_freq":		'{:03.3f}',
+			"com1_stdby_freq":	'{:03.3f}',
+			"com2_freq":		'{:03.3f}',
+			"com2_stdby_freq": 	'{:03.3f}',
+			"com3_freq":		' ACARS',
+			"com3_stdby_freq":	'13232'
+		}
 
 		# Initialize the xplane receiver
 		self.xplane = xplane()
@@ -232,28 +250,28 @@ class Radio:
 	def setMode(self, mode):
 		print ("Mode is now %d" % mode)
 		if mode == self.MODE_NAV1:
-			self.display.setActiveFrequency(float(self.frequencies["vor_freq"]))
-			self.display.setStbyFrequency(float(self.frequencies["vor_stdby_freq"]) )
+			self.display.setActiveText(self.fmt_string["vor_freq"], float(self.frequencies["vor_freq"]))
+			self.display.setStandbyText(self.fmt_string["vor_stdby_freq"], float(self.frequencies["vor_stdby_freq"]))
 			self.display.selectActiveMode(Display.ILS)
 		elif mode == self.MODE_NAV2:
-			self.display.setActiveFrequency(float(self.frequencies["ils_freq"]) )
-			self.display.setStbyFrequency(float(self.frequencies["ils_stdby_freq"]))
+			self.display.setActiveText(self.fmt_string["ils_freq"], float(self.frequencies["ils_freq"]))
+			self.display.setStandbyText(self.fmt_string["ils_stdby_freq"], float(self.frequencies["ils_stdby_freq"]))
 			self.display.selectActiveMode(Display.VOR)
 		elif mode == self.MODE_COM1:
-			self.display.setActiveFrequency(float(self.frequencies["com1_freq"]))
-			self.display.setStbyFrequency(float(self.frequencies["com1_stdby_freq"]))
+			self.display.setActiveText(self.fmt_string["com1_freq"], float(self.frequencies["com1_freq"]))
+			self.display.setStandbyText(self.fmt_string["com1_stdby_freq"], float(self.frequencies["com1_stdby_freq"]))
 			self.display.selectStbyNavMode(Display.VHF1)
 		elif mode == self.MODE_COM2:
-			self.display.setActiveFrequency(float(self.frequencies["com2_freq"]))
-			self.display.setStbyFrequency(float(self.frequencies["com2_stdby_freq"]))
+			self.display.setActiveText(self.fmt_string["com2_freq"], float(self.frequencies["com2_freq"]))
+			self.display.setStandbyText(self.fmt_string["com2_stdby_freq"], float(self.frequencies["com2_stdby_freq"]))
 			self.display.selectStbyNavMode(Display.VHF2)
 		elif mode == self.MODE_ADF1:
-			self.display.setActiveFrequency(float(self.frequencies["adf1_freq"]))
-			self.display.setStbyFrequency(float(self.frequencies["adf1_stdby_freq"]))
+			self.display.setActiveText(self.fmt_string["adf1_freq"], float(self.frequencies["adf1_freq"]))
+			self.display.setStandbyText(self.fmt_string["adf1_stdby_freq"], float(self.frequencies["adf1_stdby_freq"]))
 			self.display.selectActiveMode(Display.MLS)
 		elif mode == self.MODE_ADF2:
-			self.display.setActiveFrequency(float(self.frequencies["adf2_freq"]))
-			self.display.setStbyFrequency(float(self.frequencies["adf2_stdby_freq"]))
+			self.display.setActiveText(self.fmt_string["adf2_freq"], float(self.frequencies["adf2_freq"]))
+			self.display.setStandbyText(self.fmt_string["adf2_stdby_freq"], float(self.frequencies["adf2_stdby_freq"]))
 			self.display.selectActiveMode(Display.ADF)
 		else:
 			self.display.clearActiveFrequency()
@@ -265,38 +283,38 @@ class Radio:
 	def update(self):
 		if self.Mode == self.MODE_NAV1:
 			print ("Mode is ILS")
-			self.display.setActiveFrequency(float(self.frequencies["vor_freq"]))
-			self.display.setStbyFrequency(float(self.frequencies["vor_stdby_freq"]))
+			self.display.setActiveText(self.fmt_string["vor_freq"], float(self.frequencies["vor_freq"]))
+			self.display.setStandbyText(self.fmt_string["vor_stdby_freq"], float(self.frequencies["vor_stdby_freq"]))
 			self.display.selectActiveMode(Display.ILS)
 		elif self.Mode == self.MODE_NAV2:
 			print ("Mode is VOR")
-			self.display.setActiveFrequency(float(self.frequencies["ils_freq"]) )
-			self.display.setStbyFrequency(float(self.frequencies["ils_stdby_freq"] ))
+			self.display.setActiveText(self.fmt_string["ils_freq"], float(self.frequencies["ils_freq"]))
+			self.display.setStandbyText(self.fmt_string["ils_stdby_freq"], float(self.frequencies["ils_stdby_freq"]))
 			self.display.selectActiveMode(Display.VOR)
 		elif self.Mode == self.MODE_COM1:
 			print ("Mode is VHF1")
-			self.display.setActiveFrequency(float(self.frequencies["com1_freq"]))
-			self.display.setStbyFrequency(float(self.frequencies["com1_stdby_freq"]))
+			self.display.setActiveText(self.fmt_string["com1_freq"], float(self.frequencies["com1_freq"]))
+			self.display.setStandbyText(self.fmt_string["com1_stdby_freq"], float(self.frequencies["com1_stdby_freq"]))
 			self.display.selectStbyNavMode(Display.VHF1)
 		elif self.Mode == self.MODE_COM2:
 			print ("Mode is VHF2")
-			self.display.setActiveFrequency(float(self.frequencies["com2_freq"]))
-			self.display.setStbyFrequency(float(self.frequencies["com2_stdby_freq"]))
+			self.display.setActiveText(self.fmt_string["com2_freq"], float(self.frequencies["com2_freq"]))
+			self.display.setStandbyText(self.fmt_string["com2_stdby_freq"], float(self.frequencies["com2_stdby_freq"]))
 			self.display.selectStbyNavMode(Display.VHF2)
 		elif self.Mode == self.MODE_COM3:
 			print ("Mode is VHF3")
-			self.display.setActiveFrequency(float(self.frequencies["com3_freq"]))
-			self.display.setStbyFrequency(float(self.frequencies["com3_stdby_freq"]))
+			self.display.setActiveText(self.fmt_string["com3_freq"], float(self.frequencies["com3_freq"]))
+			self.display.setStandbyText(self.fmt_string["com3_stdby_freq"], float(self.frequencies["com3_stdby_freq"]))
 			self.display.selectStbyNavMode(Display.VHF3)
 		elif self.Mode == self.MODE_ADF1:
 			print ("Mode is MLS")
-			self.display.setActiveFrequency(float(self.frequencies["adf1_freq"]))
-			self.display.setStbyFrequency(float(self.frequencies["adf1_stdby_freq"]))
+			self.display.setActiveText(self.fmt_string["adf1_freq"], float(self.frequencies["adf1_freq"]))
+			self.display.setStandbyText(self.fmt_string["adf1_stdby_freq"], float(self.frequencies["adf1_stdby_freq"]))
 			self.display.selectActiveMode(Display.MLS)
 		elif self.Mode == self.MODE_ADF2:
 			print ("Mode is ADF")
-			self.display.setActiveFrequency(float(self.frequencies["adf2_freq"]))
-			self.display.setStbyFrequency(float(self.frequencies["adf2_stdby_freq"]))
+			self.display.setActiveText(self.fmt_string["adf2_freq"], float(self.frequencies["adf2_freq"]))
+			self.display.setStandbyText(self.fmt_string["adf2_stdby_freq"], float(self.frequencies["adf2_stdby_freq"]))
 			self.display.selectActiveMode(Display.ADF)
 		else:
 			self.display.clearActiveFrequency()
