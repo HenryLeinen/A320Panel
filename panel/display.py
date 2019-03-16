@@ -3,6 +3,7 @@ from panel.max7219 import Lcd
 
 class Display:
 
+	NONE = 0
 # Display 1 Mapping
 	NAV = 4
 	VOR = 2
