@@ -56,7 +56,7 @@ class Lcd:
 				arr = arr + b
 			else:
 				arr = arr + [0x00, 0x00]
-		print ("***Lcd.send(devno={}, b={}, arr={}".format(devno, b, arr))
+#		print ("***Lcd.send(devno={}, b={}, arr={}".format(devno, b, arr))
 		self.spi.writebytes(arr)
 
 	# This function send a tuple (16-bit) value to all displays at once

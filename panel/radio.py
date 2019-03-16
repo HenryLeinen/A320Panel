@@ -64,10 +64,10 @@ class Radio:
 		self.fmt_string = {
 			"vor_freq":			' {:03.2f}',
 			"vor_stdby_freq":	' {:03.2f}',
-			"vor_course":		'C-{:03f}',
+			"vor_course":		' C-{:03.0f}',
 			"ils_freq": 		' {:03.2f}',
 			"ils_stdby_freq": 	' {:03.2f}',
-			"ils_course": 		'C-{:03f}',
+			"ils_course": 		' C-{:03.0f}',
 			"adf1_freq": 		' {:04.1f}',
 			"adf1_stdby_freq": 	' {:04.1f}',
 			"adf2_freq": 		' {:04.1f}',
@@ -110,10 +110,12 @@ class Radio:
 		# store the nav override mode. This is on when the user has pressed the NAV button. The modification of VOR, ILS is only possible in NAV override mode
 		self.NavOverride = False 
 		# store the last valid COM Mode, to return to after NAV button was pressed a second time
-		self.LastComMode = self.MODE_NAV1
+		self.LastComMode = self.MODE_COM1
 		# remember if we were in VOR/ILS Course editing mode
 		self.VorCourseEditingActive = False
 		self.IlsCourseEditingActive = False
+		# set marker for AM key
+		self.AMselected = False
 
 	def OnOffChanged(self, newval):
 		if newval == 0:
@@ -137,7 +139,7 @@ class Radio:
 			else:
 				self.Mode = self.LastComMode
 				self.NavOverride = False
-		if key == Keyboard.BTN_VHF1:
+		elif key == Keyboard.BTN_VHF1:
 			self.Mode = self.MODE_COM1
 			self.NavOverride = False
 		elif key == Keyboard.BTN_VHF2:
@@ -164,6 +166,9 @@ class Radio:
 		elif key == Keyboard.BTN_HF2:
 			self.Mode = self.MODE_HF2
 			self.NavOverride = False
+		elif key == Keyboard.BTN_AM:
+			if self.Mode == self.MODE_HF1 or self.Mode == self.MODE_HF2:
+				self.AMselected = not self.AMselected
 		elif key == Keyboard.BTN_XCHG:
 			# exchange standby frequency with active frequency
 			freq = self.getActiveFrequency()
@@ -185,9 +190,15 @@ class Radio:
 
 	def getStandbyFrequencyKey(self):
 		if self.Mode == self.MODE_NAV1:
-			key = "vor_stdby_freq"
+			if self.IlsCourseEditingActive:
+				key = "ils_course"
+			else:
+				key = "ils_stdby_freq"
 		elif self.Mode == self.MODE_NAV2:
-			key = "ils_stdby_freq"
+			if self.VorCourseEditingActive:
+				key = "vor_course"
+			else:
+				key = "vor_stdby_freq"
 		elif self.Mode == self.MODE_ADF1:
 			key = "adf1_stdby_freq"
 		elif self.Mode == self.MODE_ADF2:
@@ -204,9 +215,9 @@ class Radio:
 
 	def getActiveFrequencyKey(self):
 		if self.Mode == self.MODE_NAV1:
-			key = "vor_freq"
-		elif self.Mode == self.MODE_NAV2:
 			key = "ils_freq"
+		elif self.Mode == self.MODE_NAV2:
+			key = "vor_freq"
 		elif self.Mode == self.MODE_ADF1:
 			key = "adf1_freq"
 		elif self.Mode == self.MODE_ADF2:
@@ -250,7 +261,7 @@ class Radio:
 			freq = maxfreq
 		elif freq > maxfreq:
 			freq = minfreq
-#		print ("*** New value {} is {}".format(key, freq))
+		print ("*** New value {} is {}".format(key, freq))
 		self.frequencies[key] = freq
 		# Send frequency
 		self.xplane.setValue(key, freq)
@@ -388,7 +399,10 @@ class Radio:
 			print ("Mode is HF1")
 			self.display.setActiveText(self.fmt_string["hf1_freq"], float(self.frequencies["hf1_freq"]))
 			self.display.setStandbyText(self.fmt_string["hf1_stdby_freq"], float(self.frequencies["hf1_stdby_freq"]))
-			self.display.selectStbyNavMode(Display.HF1)
+			if self.AMselected:
+				self.display.selectStbyNavMode(Display.HF1|Display.AM)
+			else:
+				self.display.selectStbyNavMode(Display.HF1)
 			if self.NavOverride == True:
 				self.display.selectActiveMode(Display.NAV)
 			else:
@@ -397,7 +411,10 @@ class Radio:
 			print ("Mode is HF2")
 			self.display.setActiveText(self.fmt_string["hf2_freq"], float(self.frequencies["hf2_freq"]))
 			self.display.setStandbyText(self.fmt_string["hf2_stdby_freq"], float(self.frequencies["hf2_stdby_freq"]))
-			self.display.selectStbyNavMode(Display.HF2)
+			if self.AMselected:
+				self.display.selectStbyNavMode(Display.HF2|Display.AM)
+			else:
+				self.display.selectStbyNavMode(Display.HF2)
 			if self.NavOverride == True:
 				self.display.selectActiveMode(Display.NAV)
 			else:

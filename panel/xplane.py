@@ -128,7 +128,7 @@ class xplane(threading.Thread):
 					t_val = 0.0
 				self._sendValue(self.cfg["Variables"][item], float(t_val))
 			elif t_type == "float":
-				self._sendValue(self.cfg["Variables"][item], float(val))
+				self._sendValue(self.cfg["Variables"][item], float(value))
 			elif t_type == "enum":
 				# get the name of the map
 				t_map = self.cfg[t_key]["map"]
