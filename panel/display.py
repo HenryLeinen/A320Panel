@@ -33,7 +33,7 @@ class Display:
 		self.lcd.setDigitString(1,"------")
 		self.lcd.setDigitValue(0, 6,0)
 		self.lcd.setDigitValue(1, 6,0)
-		self.brightness = 15
+		self.brightness = 1.0
 		self.display1 = Display.NONE
 		self.display2 = Display.NONE
 
@@ -57,10 +57,10 @@ class Display:
 	def selectActiveMode(self, mode):
 		self.lcd.setDigitValue(1,6,mode, True)
 
-
+	# Brightness shall take a value between 0 and 1 as float. This function will make sure to adjust the right value for the MAX7219
 	def setBrightness(self, b):
 		self.brightness = b
-		self.lcd.setIntensityAll(b)
+		self.lcd.setIntensityAll(int(b*15))
 
 	def enable(self, ena):
 		if ena :
