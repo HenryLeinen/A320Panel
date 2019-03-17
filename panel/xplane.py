@@ -154,7 +154,7 @@ class xplane(threading.Thread):
 			else:
 				print ("Invalid mapping table !!!")
 		else:
-			print ("setValue: Invalid item")
+			print ('******* setValue: Invalid item {}*******'.format(item))
 
 	# INTERNAL FUNCTION
 	# This function will send a dataref request to x-plane. The update frequency is optional and defaults to 1 per second
