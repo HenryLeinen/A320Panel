@@ -34,6 +34,8 @@ class Display:
 		self.lcd.setDigitValue(0, 6,0)
 		self.lcd.setDigitValue(1, 6,0)
 		self.brightness = 15
+		self.display1 = Display.NONE
+		self.display2 = Display.NONE
 
 	def setStandbyText(self, fmt_string, val):
 		self.lcd.setDigitString(1, fmt_string.format(val))
@@ -48,11 +50,13 @@ class Display:
 	def clearStbyFrequency(self):
 		self.lcd.setDigitString(1, "      ")
 
+
 	def selectStbyNavMode(self, mode):
 		self.lcd.setDigitValue(0,6,mode, True)
 
 	def selectActiveMode(self, mode):
 		self.lcd.setDigitValue(1,6,mode, True)
+
 
 	def setBrightness(self, b):
 		self.brightness = b
