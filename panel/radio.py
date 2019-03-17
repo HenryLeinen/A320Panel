@@ -46,10 +46,10 @@ class Radio:
 			"ils_freq": 109.00,
 			"ils_stdby_freq": 109.00,
 			"ils_course": 10.0,
-			"adf1_freq": 110,
-			"adf1_stdby_freq": 111,
-			"adf2_freq": 112,
-			"adf2_stdby_freq": 113,
+			"adf1_freq": 110.0,
+			"adf1_stdby_freq": 111.0,
+			"adf2_freq": 112.0,
+			"adf2_stdby_freq": 113.0,
 			"com1_freq": 108.00,
 			"com1_stdby_freq": 108.5,
 			"com2_freq": 109.00,
@@ -68,10 +68,10 @@ class Radio:
 			"ils_freq": 		' {:03.2f}',
 			"ils_stdby_freq": 	' {:03.2f}',
 			"ils_course": 		' C-{:03.0f}',
-			"adf1_freq": 		' {:04.1f}',
-			"adf1_stdby_freq": 	' {:04.1f}',
-			"adf2_freq": 		' {:04.1f}',
-			"adf2_stdby_freq": 	' {:04.1f}',
+			"adf1_freq": 		' {:>03.1f}',
+			"adf1_stdby_freq": 	' {:>03.1f}',
+			"adf2_freq": 		' {:>03.1f}',
+			"adf2_stdby_freq": 	' {:>03.1f}',
 			"com1_freq":		'{:03.3f}',
 			"com1_stdby_freq":	'{:03.3f}',
 			"com2_freq":		'{:03.3f}',
@@ -100,6 +100,8 @@ class Radio:
 		self.xplane.setCallback("adf2_freq", self.cbkFrequencyValueChanged)
 		self.xplane.setCallback("adf1_stdby_freq", self.cbkFrequencyValueChanged)
 		self.xplane.setCallback("adf2_stdby_freq", self.cbkFrequencyValueChanged)
+		self.xplane.setCallback("vor_course", self.cbkFrequencyValueChanged)
+		self.xplane.setCallback("ils_course", self.cbkFrequencyValueChanged)
 		# setup the keyboard and register the callback
 		self.keyboard = Keyboard( [0,5,6,13], [4,3,2,19])
 		self.keyboard.registerCallbacks(self.onKeyPressed, 0)
@@ -173,18 +175,12 @@ class Radio:
 			# exchange standby frequency with active frequency
 			freq = self.getActiveFrequency()
 			freq_2 = self.getStandbyFrequency()
-			if self.Mode == self.MODE_NAV1:
-				if self.IlsCourseEditingActive == True:
-					self.IlsCourseEditingActive = False
-				else:
-					self.IlsCourseEditingActive = True
-			elif self.Mode == self.MODE_NAV2:
-				if self.VorCourseEditingActive == True:
-					self.VorCourseEditingActive = False
-				else:
-					self.VorCourseEditingActive = True
 			self.setActiveFrequency(freq_2)
 			self.setStandbyFrequency(freq)
+			if self.Mode == self.MODE_NAV1:
+				self.IlsCourseEditingActive = not self.IlsCourseEditingActive
+			elif self.Mode == self.MODE_NAV2:
+				self.VorCourseEditingActive = not self.VorCourseEditingActive
 		self.update()
 
 
