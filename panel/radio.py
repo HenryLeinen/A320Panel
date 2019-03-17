@@ -21,8 +21,18 @@ class Radio:
 	MODE_HF2  = 18
 
 
-	def __init__(self):
+	def __init__(self, dbg=0):
 		self.active = True
+		self.dbg = dbg
+		# store the nav override mode. This is on when the user has pressed the NAV button. The modification of VOR, ILS is only possible in NAV override mode
+		self.NavOverride = False 
+		# store the last valid COM Mode, to return to after NAV button was pressed a second time
+		self.LastComMode = self.MODE_COM1
+		# remember if we were in VOR/ILS Course editing mode
+		self.VorCourseEditingActive = False
+		self.IlsCourseEditingActive = False
+		# set marker for AM key
+		self.AMselected = False
 		# set the radio mode to MODE_NAV1 per default
 		self.Mode = Radio.MODE_NAV1
 		# set the increment mode : a value of zero means a small increment on rotary encoder changes, a value of 1 means large increments
@@ -85,7 +95,7 @@ class Radio:
 		}
 
 		# Initialize the xplane receiver
-		self.xplane = xplane()
+		self.xplane = xplane(dbg)
 		self.xplane.start()
 		# Setup callbacks for server variable changes as needed
 		self.xplane.setCallback("com1_freq", self.cbkFrequencyValueChanged)
@@ -102,6 +112,7 @@ class Radio:
 		self.xplane.setCallback("adf2_stdby_freq", self.cbkFrequencyValueChanged)
 		self.xplane.setCallback("vor_course", self.cbkFrequencyValueChanged)
 		self.xplane.setCallback("ils_course", self.cbkFrequencyValueChanged)
+		self.xplane.setCallback("integ_light", self.cbkBacklightValueChanged)
 		# setup the keyboard and register the callback
 		self.keyboard = Keyboard( [0,5,6,13], [4,3,2,19])
 		self.keyboard.registerCallbacks(self.onKeyPressed, 0)
@@ -109,15 +120,6 @@ class Radio:
 		# setup the OnOffSwitch
 		self.OnOff = OnOffSwitch(26, self.OnOffChanged)
 		self.OnOffChanged(self.OnOff.getState())
-		# store the nav override mode. This is on when the user has pressed the NAV button. The modification of VOR, ILS is only possible in NAV override mode
-		self.NavOverride = False 
-		# store the last valid COM Mode, to return to after NAV button was pressed a second time
-		self.LastComMode = self.MODE_COM1
-		# remember if we were in VOR/ILS Course editing mode
-		self.VorCourseEditingActive = False
-		self.IlsCourseEditingActive = False
-		# set marker for AM key
-		self.AMselected = False
 
 	def OnOffChanged(self, newval):
 		if newval == 0:
@@ -130,6 +132,11 @@ class Radio:
 	def cbkFrequencyValueChanged(self, idx, newval):
 		self.frequencies[idx] = newval
 		self.update()
+
+	def cbkBacklightValueChanged(self, idx, newval):
+		if self.dbg >=2:
+			print ('Backlight Pedestal changed to {}'.format(newval))
+		self.display.setBrightness(newval)
 
 	def onKeyPressed(self, key):
 		if self.OnOff.getState() == False:
@@ -261,7 +268,8 @@ class Radio:
 			freq = maxfreq
 		elif freq > maxfreq:
 			freq = minfreq
-		print ("*** New value {} is {}".format(key, freq))
+		if self.dbg >=1:
+			print ("*** New value {} is {}".format(key, freq))
 		self.frequencies[key] = freq
 		# Send frequency
 		self.xplane.setValue(key, freq)
@@ -284,7 +292,8 @@ class Radio:
 			freq = maxfreq
 		elif freq > maxfreq:
 			freq = minfreq
-#		print ("*** New value {} is {}".format(key, freq))
+		if self.dbg >=1:
+			print ("*** New value {} is {}".format(key, freq))
 		self.frequencies[key] = freq
 		# Send frequency
 		self.xplane.setValue(key, freq)
@@ -301,7 +310,8 @@ class Radio:
 
 	# this function will update the mode LEDs as well as respective frequency displays
 	def setMode(self, mode):
-		print ("Mode is now %d" % mode)
+		if self.dbg >=1:
+			print ("Mode is now %d" % mode)
 		if mode == self.MODE_NAV1:
 			self.display.setActiveText(self.fmt_string["ils_freq"], float(self.frequencies["ils_freq"]))
 			self.display.setStandbyText(self.fmt_string["ils_stdby_freq"], float(self.frequencies["ils_stdby_freq"]))
