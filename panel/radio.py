@@ -232,13 +232,17 @@ class Radio:
 		return self.frequencies[self.getStandbyFrequencyKey()]
 
 	def setStandbyFrequency(self, freq):
-		self.frequencies[self.getStandbyFrequencyKey()] = freq
+		key = self.getStandbyFrequencyKey()
+		self.frequencies[key] = freq
+		self.xplane.setValue(key, freq)
 
 	def getActiveFrequency(self):
 		return self.frequencies[self.getActiveFrequencyKey()]
 
 	def setActiveFrequency(self, freq):
-		self.frequencies[self.getActiveFrequencyKey()] = freq
+		key = self.getActiveFrequencyKey()
+		self.frequencies[key] = freq
+		self.xplane.setValue(self.getActiveFrequencyKey(), freq)
 
 	def onEncoderLeft(self):
 		if self.OnOff.getState() == False:
