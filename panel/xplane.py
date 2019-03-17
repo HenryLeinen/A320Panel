@@ -15,6 +15,7 @@ class xplane(threading.Thread):
 		self.cfg = ConfigParser()
 		# load the config file
 		self.cfg.read('panel/xplane.cfg')
+		self.active_profile = self.cfg["Default"]["Profile"]
 		# start listening for the X-Plane beacon, which tells us where x-plane is currently running
 		self.beacon = XPlaneBeaconListener()
 		self.beacon.registerChangeEvent(self.xPlaneHostChange)
@@ -30,14 +31,19 @@ class xplane(threading.Thread):
 		self.xplaneValues = {}
 		self.callbacks = {}
 
+	def _getProfileItemKey(self, item):
+		return '{}.{}'.format(self.active_profile,item)
+	
+	def _getProfileItem(self, item):
+		return self.cfg[self._getProfileItemKey(item)]
 
 	# EXPORTED FUNCTION
 	# This function is used by the user of this class and registers a callback function for a particular variable.
 	# The variable is a logical variable name, which will internally be translated into an xplane variable using a lookup table
 	def setCallback(self, var, cbk):
 		# lookup the dataref value which is related to the given variable
-		if var in self.cfg["Requests"].keys():
-			dataref = self.cfg["Requests"][var]
+		if var in self.cfg[self._getProfileItemKey("Requests")].keys():
+			dataref = self.cfg[self._getProfileItemKey("Requests")][var]
 			if self.debug >=2:
 				print ("Setting callback for variable %s"%dataref)
 			self.callbacks[dataref] = cbk
@@ -122,7 +128,7 @@ class xplane(threading.Thread):
 	# value to send
 	def setValue(self, item, value):
 		# look up the item in the configuration structure
-		if item in self.cfg["Variables"].keys():
+		if item in self.cfg[self._getProfileItemKey("Variables")].keys():
 			if self.debug >=2:
 				print ("Setting item %s to value %s" %(item, str(value)))
 			# item does exist, so lookup the dataref and the type
@@ -135,17 +141,17 @@ class xplane(threading.Thread):
 				else:
 					t_val = 0.0
 				if self.debug >=2:
-					print ("Now sending {} to {}".format(t_val, self.cfg["Variables"][item]))
-				self._sendValue(self.cfg["Variables"][item], float(t_val))
+					print ("Now sending {} to {}".format(t_val, self.cfg[self._getProfileItemKey("Variables")][item]))
+				self._sendValue(self.cfg[self._getProfileItemKey("Variables")][item], float(t_val))
 			elif t_type == "float":
 				if self.debug >=2:
-					print ("Now sending {} to {}".format(value, self.cfg["Variables"][item]))
-				self._sendValue(self.cfg["Variables"][item], float(value))
+					print ("Now sending {} to {}".format(value, self.cfg[self._getProfileItemKey("Variables")][item]))
+				self._sendValue(self.cfg[self._getProfileItemKey("Variables")][item], float(value))
 			elif t_type == "enum":
 				# get the name of the map
 				t_map = self.cfg[t_key]["map"]
 				t_val = self.cfg[t_map][value]
-				self._sendValue(self.cfg["Variables"][item], float(t_val))
+				self._sendValue(self.cfg[self._getProfileItemKey("Variables")][item], float(t_val))
 			elif t_type == "linear":
 				# get min, max values against which we need to clip the input
 				t_min = float(self.cfg[t_key]["range_in_min"])
@@ -159,8 +165,8 @@ class xplane(threading.Thread):
 				t_slp  = float(self.cfg[t_key]["slope"])
 				t_val = t_offs + t_slp*float(value)
 				if self.debug >=2:
-					print ("Now sending {} to {}".format(t_val, self.cfg["Variables"][item]))
-				self._sendValue(self.cfg["Variables"][item], float(t_val))
+					print ("Now sending {} to {}".format(t_val, self.cfg[self._getProfileItemKey("Variables")][item]))
+				self._sendValue(self.cfg[self._getProfileItemKey("Variables")][item], float(t_val))
 			else:
 				print ("Invalid mapping table !!!")
 		else:
@@ -197,8 +203,8 @@ class xplane(threading.Thread):
 	# INTERNAL FUNCTION
 	# This function will subscribe to all datarefs given in the configuration file listed under the 'Requests' section.
 	def _subscribe(self):
-		for var in list(self.cfg["Requests"].keys()):
-			self._request(self.cfg["Requests"][var])
+		for var in list(self.cfg[self._getProfileItemKey("Requests")].keys()):
+			self._request(self.cfg[self._getProfileItemKey("Requests")][var])
 
 	# EXTERNAL FUNCTION
 	# This function will initiate the receiver function by resubscribing to the dataref values from the config file.
@@ -228,14 +234,15 @@ class xplane(threading.Thread):
 					if idx in self.callbacks.keys():
 						if self.debug >=1:
 							print ("Calling callback for %s" % idx.strip('\x00'))
-						v1 = list(self.cfg["Requests"].values()).index(idx)
-						v2 = list(self.cfg["Requests"].keys())[v1]
+						v1 = list(self.cfg[self._getProfileItemKey("Requests")].values()).index(idx)
+						v2 = list(self.cfg[self._getProfileItemKey("Requests")].keys())[v1]
 						newval_int = self._reinterpret(v2, newval)		# revers interpret the x-plane value into the logical value known to the calling app
 						if self.debug >=3:
 							print ("New value is %d, converting %s"%(newval, newval_int))
 						self.callbacks[idx](v2, newval_int)
 					else:
-						print ("No callback for %s" % idx)
+						if self.debug >=1:
+							print ("No callback for %s" % idx)
 				else:
 					#print ("Value did not change")
 					pass

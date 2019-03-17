@@ -49,6 +49,7 @@ class Radio:
 		self.cfg = ConfigParser()
 		# load the config file
 		self.cfg.read('panel/xplane.cfg')
+		self.active_profile = self.cfg["Default"]["Profile"]
 		self.frequencies = {
 			"vor_freq": 112.00,
 			"vor_stdby_freq":	112.00,
@@ -120,6 +121,13 @@ class Radio:
 		# setup the OnOffSwitch
 		self.OnOff = OnOffSwitch(26, self.OnOffChanged)
 		self.OnOffChanged(self.OnOff.getState())
+
+
+	def _getProfileItemKey(self, item):
+		return '{}.{}'.format(self.active_profile,item)
+	
+	def _getProfileItem(self, item):
+		return self.cfg[self._getProfileItemKey(item)]
 
 	def OnOffChanged(self, newval):
 		if newval == 0:
@@ -359,7 +367,7 @@ class Radio:
 		if self.NavOverride == True:
 			self.display.selectActiveMode(Display.NAV)
 		if self.Mode == self.MODE_NAV1:
-			print ("Mode is ILS")
+			_mode = "ILS"
 			if self.IlsCourseEditingActive == False:
 				self.display.setActiveText(self.fmt_string["ils_freq"], float(self.frequencies["ils_freq"]))
 				self.display.setStandbyText(self.fmt_string["ils_stdby_freq"], float(self.frequencies["ils_stdby_freq"]))
@@ -369,7 +377,7 @@ class Radio:
 			self.display.selectActiveMode(Display.ILS|Display.NAV)
 			self.display.selectStbyNavMode(Display.NONE)
 		elif self.Mode == self.MODE_NAV2:
-			print ("Mode is VOR")
+			_mode = "VOR"
 			if self.VorCourseEditingActive == False:
 				self.display.setActiveText(self.fmt_string["vor_freq"], float(self.frequencies["vor_freq"]))
 				self.display.setStandbyText(self.fmt_string["vor_stdby_freq"], float(self.frequencies["vor_stdby_freq"]))
@@ -379,7 +387,7 @@ class Radio:
 			self.display.selectActiveMode(Display.VOR|Display.NAV)
 			self.display.selectStbyNavMode(Display.NONE)
 		elif self.Mode == self.MODE_COM1:
-			print ("Mode is VHF1")
+			_mode = "VHF1"
 			self.display.setActiveText(self.fmt_string["com1_freq"], float(self.frequencies["com1_freq"]))
 			self.display.setStandbyText(self.fmt_string["com1_stdby_freq"], float(self.frequencies["com1_stdby_freq"]))
 			self.display.selectStbyNavMode(Display.VHF1)
@@ -388,7 +396,7 @@ class Radio:
 			else:
 				self.display.selectActiveMode(Display.NONE)
 		elif self.Mode == self.MODE_COM2:
-			print ("Mode is VHF2")
+			_mode = "VHF2"
 			self.display.setActiveText(self.fmt_string["com2_freq"], float(self.frequencies["com2_freq"]))
 			self.display.setStandbyText(self.fmt_string["com2_stdby_freq"], float(self.frequencies["com2_stdby_freq"]))
 			self.display.selectStbyNavMode(Display.VHF2)
@@ -397,7 +405,7 @@ class Radio:
 			else:
 				self.display.selectActiveMode(Display.NONE)
 		elif self.Mode == self.MODE_COM3:
-			print ("Mode is VHF3")
+			_mode = "VHF3"
 			self.display.setActiveText(self.fmt_string["com3_freq"], float(self.frequencies["com3_freq"]))
 			self.display.setStandbyText(self.fmt_string["com3_stdby_freq"], float(self.frequencies["com3_stdby_freq"]))
 			self.display.selectStbyNavMode(Display.VHF3)
@@ -406,7 +414,7 @@ class Radio:
 			else:
 				self.display.selectActiveMode(Display.NONE)
 		elif self.Mode == self.MODE_HF1:
-			print ("Mode is HF1")
+			_mode = "HF1"
 			self.display.setActiveText(self.fmt_string["hf1_freq"], float(self.frequencies["hf1_freq"]))
 			self.display.setStandbyText(self.fmt_string["hf1_stdby_freq"], float(self.frequencies["hf1_stdby_freq"]))
 			if self.AMselected:
@@ -418,7 +426,7 @@ class Radio:
 			else:
 				self.display.selectActiveMode(Display.NONE)
 		elif self.Mode == self.MODE_HF2:
-			print ("Mode is HF2")
+			_mode = "HF2"
 			self.display.setActiveText(self.fmt_string["hf2_freq"], float(self.frequencies["hf2_freq"]))
 			self.display.setStandbyText(self.fmt_string["hf2_stdby_freq"], float(self.frequencies["hf2_stdby_freq"]))
 			if self.AMselected:
@@ -430,13 +438,13 @@ class Radio:
 			else:
 				self.display.selectActiveMode(Display.NONE)
 		elif self.Mode == self.MODE_ADF1:
-			print ("Mode is MLS")
+			_mode = "MLF"
 			self.display.setActiveText(self.fmt_string["adf1_freq"], float(self.frequencies["adf1_freq"]))
 			self.display.setStandbyText(self.fmt_string["adf1_stdby_freq"], float(self.frequencies["adf1_stdby_freq"]))
 			self.display.selectActiveMode(Display.MLS|Display.NAV)
 			self.display.selectStbyNavMode(Display.NONE)
 		elif self.Mode == self.MODE_ADF2:
-			print ("Mode is ADF")
+			_mode = "ADF"
 			self.display.setActiveText(self.fmt_string["adf2_freq"], float(self.frequencies["adf2_freq"]))
 			self.display.setStandbyText(self.fmt_string["adf2_stdby_freq"], float(self.frequencies["adf2_stdby_freq"]))
 			self.display.selectActiveMode(Display.ADF|Display.NAV)
@@ -446,7 +454,8 @@ class Radio:
 			self.display.clearStbyFrequency()
 			self.display.selectActiveMode(Display.NONE)
 			self.display.selectStbyNavMode(Display.NONE)
-
+		if self.dbg >=1:
+			print ('Mode is {}'.format(_mode))
 
 	def stop(self):
 		self.display.enable(False)
