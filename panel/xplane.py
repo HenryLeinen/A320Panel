@@ -7,9 +7,10 @@ import threading
 
 class xplane(threading.Thread):
 
-	def __init__(self):
+	def __init__(self, dbg=0):
 		threading.Thread.__init__(self)
 		self.active = True
+		self.debug = dbg
 		# Initialize the config file parser
 		self.cfg = ConfigParser()
 		# load the config file
@@ -37,10 +38,12 @@ class xplane(threading.Thread):
 		# lookup the dataref value which is related to the given variable
 		if var in self.cfg["Requests"].keys():
 			dataref = self.cfg["Requests"][var]
-			#print ("Setting callback for variable %s"%dataref)
+			if self.debug >=2:
+				print ("Setting callback for variable %s"%dataref)
 			self.callbacks[dataref] = cbk
 		else:
-			print("Callback for variable %s cannot be set."% var)
+			if self.debug >=1:
+				print("Callback for variable %s cannot be set."% var)
 
 	# INTERNAL FUNCTION
 	# This function will reinterpret a value received from x-plane into the related logical value which is relevant for the user
@@ -78,14 +81,16 @@ class xplane(threading.Thread):
 	def xPlaneHostChange(self, stat, host):
 		if stat == XPlaneBeaconListener.LISTENING:
 			(hostname,hostport) = host
-			print ("X-Plane instance found on %s:%d", hostname, hostport)
+			if self.debug >=1:
+				print ("X-Plane instance found on %s:%d", hostname, hostport)
 			# start the receiver
 			self.UDP_XPL = (socket.gethostbyname(hostname),hostport)
 			self.UDP_LCL = ("localhost",hostport)
 			self.startReceiver()
 		else:
 			# stop the receiver
-			print ("X-Plane signal lost !")
+			if self.debug >= 1:
+				print ("X-Plane signal lost !")
 			self.UDP_XPL = ("localhost", 49009)
 			self.stopReceiver()
 
@@ -108,7 +113,8 @@ class xplane(threading.Thread):
 		string+= '\x00'
 		message = struct.pack("<5sf500s", cmd, value, string)
 		assert(len(message)==509)
-#		print ('Sending to {}:{} dataref {}={}'.format(self.UDP_XPL[0], self.UDP_XPL[1], dataref, value))
+		if self.debug >= 2:
+			print ('Sending to {}:{} dataref {}={}'.format(self.UDP_XPL[0], self.UDP_XPL[1], dataref, value))
 		self.sock.sendto(message, self.UDP_XPL)
 
 	# EXPORTED FUNCTION
@@ -117,7 +123,8 @@ class xplane(threading.Thread):
 	def setValue(self, item, value):
 		# look up the item in the configuration structure
 		if item in self.cfg["Variables"].keys():
-			print ("Setting item %s to value %s" %(item, str(value)))
+			if self.debug >=2:
+				print ("Setting item %s to value %s" %(item, str(value)))
 			# item does exist, so lookup the dataref and the type
 			t_key = 'Var.{}'.format(item)
 			# get the type
@@ -127,10 +134,12 @@ class xplane(threading.Thread):
 					t_val = 1.0
 				else:
 					t_val = 0.0
-				print ("Now sending {} to {}".format(t_val, self.cfg["Variables"][item]))
+				if self.debug >=2:
+					print ("Now sending {} to {}".format(t_val, self.cfg["Variables"][item]))
 				self._sendValue(self.cfg["Variables"][item], float(t_val))
 			elif t_type == "float":
-				print ("Now sending {} to {}".format(value, self.cfg["Variables"][item]))
+				if self.debug >=2:
+					print ("Now sending {} to {}".format(value, self.cfg["Variables"][item]))
 				self._sendValue(self.cfg["Variables"][item], float(value))
 			elif t_type == "enum":
 				# get the name of the map
@@ -149,7 +158,8 @@ class xplane(threading.Thread):
 				t_offs = float(self.cfg[t_key]["offset"])
 				t_slp  = float(self.cfg[t_key]["slope"])
 				t_val = t_offs + t_slp*float(value)
-				print ("Now sending {} to {}".format(t_val, self.cfg["Variables"][item]))
+				if self.debug >=2:
+					print ("Now sending {} to {}".format(t_val, self.cfg["Variables"][item]))
 				self._sendValue(self.cfg["Variables"][item], float(t_val))
 			else:
 				print ("Invalid mapping table !!!")
@@ -176,10 +186,12 @@ class xplane(threading.Thread):
 			self.xplaneValues[dataref] = 0
 		cmd = b"RREF\x00"
 		string = dataref.encode('utf-8') + '\x00'
-		print ("Requesting dataref %s using index %d" % (dataref, idx))
+		if self.debug >=1:
+			print ("Requesting dataref %s using index %d" % (dataref, idx))
 		message = struct.pack("<5sii400s", cmd, freq, idx, string)
 		assert(len(message)==413)
-		print ('Sending to {}:{} dataref {}={}'.format(self.UDP_XPL[0], self.UDP_XPL[1], freq, dataref))
+		if self.debug>=2:
+			print ('Sending to {}:{} dataref {}={}'.format(self.UDP_XPL[0], self.UDP_XPL[1], freq, dataref))
 		self.sock.sendto(message, self.UDP_XPL)
 
 	# INTERNAL FUNCTION
@@ -208,16 +220,19 @@ class xplane(threading.Thread):
 				orgval = self.xplaneValues[idx]
 				newval = retvalues[idx]
 				if orgval != newval:
-					print ("Value %s has changed from %s to %s." %(str(idx).strip(b'\x00'), str(orgval), str(newval)))
+					if self.debug >=1:
+						print ("Value %s has changed from %s to %s." %(str(idx).strip(b'\x00'), str(orgval), str(newval)))
 					# trigger change notification
 					self.xplaneValues[idx] = newval
 					# call callback function if existing
 					if idx in self.callbacks.keys():
-						print ("Calling callback for %s" % idx.strip('\x00'))
+						if self.debug >=1:
+							print ("Calling callback for %s" % idx.strip('\x00'))
 						v1 = list(self.cfg["Requests"].values()).index(idx)
 						v2 = list(self.cfg["Requests"].keys())[v1]
 						newval_int = self._reinterpret(v2, newval)		# revers interpret the x-plane value into the logical value known to the calling app
-						# print ("New value is %d, converting %s"%(newval, newval_int))
+						if self.debug >=3:
+							print ("New value is %d, converting %s"%(newval, newval_int))
 						self.callbacks[idx](v2, newval_int)
 					else:
 						print ("No callback for %s" % idx)
@@ -230,7 +245,8 @@ class xplane(threading.Thread):
 
 
 	def run(self):
-		print ("Starting receiver loop")
+		if self.debug >=1:
+			print ("Starting receiver loop")
 		while self.active == True:
 			try:
 				# receive a packet
@@ -263,7 +279,8 @@ class xplane(threading.Thread):
 				else:
 					print ("Unknown packet received !", data[0:4])
 			except socket.timeout:
-				print ("*********PING********")
+				if self.debug >=1:
+					print ("*********PING********")
 				pass
 			except socket.error:
 				print ("Socket error !")

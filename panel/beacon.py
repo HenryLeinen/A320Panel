@@ -6,7 +6,8 @@ import struct
 class XPlaneBeaconListener(threading.Thread):
 	SEARCHING = 1
 	LISTENING = 2
-	def __init__(self):
+	def __init__(self, dbg=0):
+		self.dbg=dbg
 		#i initialize threading
 		threading.Thread.__init__(self)
 		self.active = True
@@ -27,7 +28,6 @@ class XPlaneBeaconListener(threading.Thread):
 		self.host = ("",0)
 
 	def changeState(self, newstate):
-#		print ("XPlaneBeaconListener::changeState %s" % newstate )
 		if newstate != self.state:
 			# change of state detected. Call callback function if existing
 			self.state = newstate
@@ -48,13 +48,11 @@ class XPlaneBeaconListener(threading.Thread):
 				if msg[0:5] != b"BECN\x00":
 					print ("Unknown message received !")
 				else:
-					print ("Beacon received, checking the data provided")
+					if self.dbg >=1:
+						print ("Beacon received, checking the data provided")
 					(maj, min, host, ver, role, port) = struct.unpack("<BBiiIH", msg[5:21])
 					sdta = msg[21:].split(b'\0')
 					host_name=sdta[0]
-#					if self.state == self.SEARCHING:
-#						print ("Host detected ", host_name)
-#						print (" on port " , port,  " with version " , maj,  "." ,min, " Role:" ,role)
 					self.host = (host_name, port)
 					self.changeState(self.LISTENING)
 			except socket.timeout:
