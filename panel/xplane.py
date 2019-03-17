@@ -81,7 +81,7 @@ class xplane(threading.Thread):
 			print ("X-Plane instance found on %s:%d", hostname, hostport)
 			# start the receiver
 			self.UDP_XPL = (socket.gethostbyname(hostname),hostport)
-			self.UDP_LCL = ("localhost",49009)
+			self.UDP_LCL = ("localhost",hostport)
 			self.startReceiver()
 		else:
 			# stop the receiver
@@ -108,6 +108,7 @@ class xplane(threading.Thread):
 		string+= '\x00'
 		message = struct.pack("<5sf500s", cmd, value, string)
 		assert(len(message)==509)
+#		print ('Sending to {}:{} dataref {}={}'.format(self.UDP_XPL[0], self.UDP_XPL[1], dataref, value))
 		self.sock.sendto(message, self.UDP_XPL)
 
 	# EXPORTED FUNCTION
@@ -126,8 +127,10 @@ class xplane(threading.Thread):
 					t_val = 1.0
 				else:
 					t_val = 0.0
+				print ("Now sending {} to {}".format(t_val, self.cfg["Variables"][item]))
 				self._sendValue(self.cfg["Variables"][item], float(t_val))
 			elif t_type == "float":
+				print ("Now sending {} to {}".format(value, self.cfg["Variables"][item]))
 				self._sendValue(self.cfg["Variables"][item], float(value))
 			elif t_type == "enum":
 				# get the name of the map
@@ -175,6 +178,8 @@ class xplane(threading.Thread):
 		string = dataref.encode('utf-8') + '\x00'
 		print ("Requesting dataref %s using index %d" % (dataref, idx))
 		message = struct.pack("<5sii400s", cmd, freq, idx, string)
+		assert(len(message)==413)
+		print ('Sending to {}:{} dataref {}={}'.format(self.UDP_XPL[0], self.UDP_XPL[1], freq, dataref))
 		self.sock.sendto(message, self.UDP_XPL)
 
 	# INTERNAL FUNCTION
