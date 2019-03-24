@@ -20,10 +20,13 @@ class Radio:
 	MODE_HF1  = 17
 	MODE_HF2  = 18
 
-
 	def __init__(self, dbg=0):
 		self.active = True
 		self.dbg = dbg
+		# when user presses the xchange button, while the radio is OFF, the profile_selection_active mode will be entered. during this mode
+		# the user can select which configuration profile is being used
+		self.profile_selection_active = False
+		self.panel_off = True
 		# store the nav override mode. This is on when the user has pressed the NAV button. The modification of VOR, ILS is only possible in NAV override mode
 		self.NavOverride = False 
 		# store the last valid COM Mode, to return to after NAV button was pressed a second time
@@ -122,72 +125,82 @@ class Radio:
 		self.OnOffChanged(self.OnOff.getState())
 
 	def OnOffChanged(self, newval):
+		print ("OnOff Switch")
 		if newval == 0:
 			# switch the panel off
+			self.panel_off = True
 			self.display.enable(False)
 		else:
 			# switch the panel on
+			self.panel_off = False
+			self.profile_selection_active = False
 			self.display.enable(True)
+			self.update()
 
+	# This callback will be called whenever a new value from XPLANE is received
 	def cbkFrequencyValueChanged(self, idx, newval):
 		self.frequencies[idx] = newval
 		self.update()
 
+	# This callback will be called whenever the backlight value in XPLANE is changed
 	def cbkBacklightValueChanged(self, idx, newval):
 		if self.dbg >=2:
 			print ('Backlight Pedestal changed to {}'.format(newval))
 		self.display.setBrightness(newval)
 
+	# This callback is called when the user presses a key
 	def onKeyPressed(self, key):
 		if self.OnOff.getState() == False:
-			return
-		if key == Keyboard.BTN_NAV:
-			if self.NavOverride == False:
-				self.LastComMode = self.Mode
-				self.NavOverride = True
-			else:
-				self.Mode = self.LastComMode
+			if key == Keyboard.BTN_XCHG:
+				self.profile_selection_active = not self.profile_selection_active
+		else:
+			if key == Keyboard.BTN_NAV:
+				if self.NavOverride == False:
+					self.LastComMode = self.Mode
+					self.NavOverride = True
+				else:
+					self.Mode = self.LastComMode
+					self.NavOverride = False
+			elif key == Keyboard.BTN_VHF1:
+				self.Mode = self.MODE_COM1
 				self.NavOverride = False
-		elif key == Keyboard.BTN_VHF1:
-			self.Mode = self.MODE_COM1
-			self.NavOverride = False
-		elif key == Keyboard.BTN_VHF2:
-			self.Mode = self.MODE_COM2
-			self.NavOverride = False
-		elif key == Keyboard.BTN_VHF3:
-			self.Mode = self.MODE_COM3
-			self.NavOverride = False
-		elif key == Keyboard.BTN_VOR:
-			if self.NavOverride == True:
-				self.Mode = self.MODE_NAV2
-		elif key == Keyboard.BTN_ILS:
-			if self.NavOverride == True:
-				self.Mode = self.MODE_NAV1
-		elif key == Keyboard.BTN_ADF:
-			if self.NavOverride == True:
-				self.Mode = self.MODE_ADF2
-		elif key == Keyboard.BTN_MLS:
-			if self.NavOverride == True:
-				self.Mode = self.MODE_ADF1
-		elif key == Keyboard.BTN_HF1:
-			self.Mode = self.MODE_HF1
-			self.NavOverride = False
-		elif key == Keyboard.BTN_HF2:
-			self.Mode = self.MODE_HF2
-			self.NavOverride = False
-		elif key == Keyboard.BTN_AM:
-			if self.Mode == self.MODE_HF1 or self.Mode == self.MODE_HF2:
-				self.AMselected = not self.AMselected
-		elif key == Keyboard.BTN_XCHG:
-			# exchange standby frequency with active frequency
-			freq = self.getActiveFrequency()
-			freq_2 = self.getStandbyFrequency()
-			self.setActiveFrequency(freq_2)
-			self.setStandbyFrequency(freq)
-			if self.Mode == self.MODE_NAV1:
-				self.IlsCourseEditingActive = not self.IlsCourseEditingActive
-			elif self.Mode == self.MODE_NAV2:
-				self.VorCourseEditingActive = not self.VorCourseEditingActive
+			elif key == Keyboard.BTN_VHF2:
+				self.Mode = self.MODE_COM2
+				self.NavOverride = False
+			elif key == Keyboard.BTN_VHF3:
+				self.Mode = self.MODE_COM3
+				self.NavOverride = False
+			elif key == Keyboard.BTN_VOR:
+				if self.NavOverride == True:
+					self.Mode = self.MODE_NAV2
+			elif key == Keyboard.BTN_ILS:
+				if self.NavOverride == True:
+					self.Mode = self.MODE_NAV1
+			elif key == Keyboard.BTN_ADF:
+				if self.NavOverride == True:
+					self.Mode = self.MODE_ADF2
+			elif key == Keyboard.BTN_MLS:
+				if self.NavOverride == True:
+					self.Mode = self.MODE_ADF1
+			elif key == Keyboard.BTN_HF1:
+				self.Mode = self.MODE_HF1
+				self.NavOverride = False
+			elif key == Keyboard.BTN_HF2:
+				self.Mode = self.MODE_HF2
+				self.NavOverride = False
+			elif key == Keyboard.BTN_AM:
+				if self.Mode == self.MODE_HF1 or self.Mode == self.MODE_HF2:
+					self.AMselected = not self.AMselected
+			elif key == Keyboard.BTN_XCHG:
+				# exchange standby frequency with active frequency
+				freq = self.getActiveFrequency()
+				freq_2 = self.getStandbyFrequency()
+				self.setActiveFrequency(freq_2)
+				self.setStandbyFrequency(freq)
+				if self.Mode == self.MODE_NAV1:
+					self.IlsCourseEditingActive = not self.IlsCourseEditingActive
+				elif self.Mode == self.MODE_NAV2:
+					self.VorCourseEditingActive = not self.VorCourseEditingActive
 		self.update()
 
 
@@ -252,59 +265,68 @@ class Radio:
 		self.xplane.setValue(self.getActiveFrequencyKey(), freq)
 
 	def onEncoderLeft(self):
-		if self.OnOff.getState() == False:
-			return
-		# Decrement the frequency
-		key = self.getStandbyFrequencyKey()
-		if self.incMode == 0:
-			incr = -float(self.cfg.getVariableItem(key, "increment_lo"))
+		if self.profile_selection_active:
+			self.cfg.prevProfile()
+		elif self.OnOff.getState() == False:
+				return
 		else:
-			incr = -float(self.cfg.getVariableItem(key,"increment_hi"))
-		maxfreq = float(self.cfg.getVariableItem(key, "range_in_max"))
-		minfreq = float(self.cfg.getVariableItem(key, "range_in_min"))
-		freq = self.frequencies[key] + incr
-		if freq < minfreq:
-			freq = maxfreq
-		elif freq > maxfreq:
-			freq = minfreq
-		if self.dbg >=1:
-			print ("*** New value {} is {}".format(key, freq))
-		self.frequencies[key] = freq
-		# Send frequency
-		self.xplane.setValue(key, freq)
+			# Decrement the frequency
+			key = self.getStandbyFrequencyKey()
+			if self.incMode == 0:
+				incr = -float(self.cfg.getVariableItem(key, "increment_lo"))
+			else:
+				incr = -float(self.cfg.getVariableItem(key,"increment_hi"))
+			maxfreq = float(self.cfg.getVariableItem(key, "range_in_max"))
+			minfreq = float(self.cfg.getVariableItem(key, "range_in_min"))
+			freq = self.frequencies[key] + incr
+			if freq < minfreq:
+				freq = maxfreq
+			elif freq > maxfreq:
+				freq = minfreq
+			if self.dbg >=1:
+				print ("*** New value {} is {}".format(key, freq))
+			self.frequencies[key] = freq
+			# Send frequency
+			self.xplane.setValue(key, freq)
 		self.update()
 
 	def onEncoderRight(self):
-		if self.OnOff.getState() == False:
+		if self.profile_selection_active:
+			self.cfg.nextProfile()
+		elif self.OnOff.getState() == False:
 			return
-		# Increment the frequency
-		key = self.getStandbyFrequencyKey()
-		if self.incMode == 0:
-			incr = float(self.cfg.getVariableItem(key, "increment_lo"))
 		else:
-			incr = float(self.cfg.getVariableItem(key, "increment_hi"))
-		maxfreq = float(self.cfg.getVariableItem(key, "range_in_max"))
-		minfreq = float(self.cfg.getVariableItem(key, "range_in_min"))
-		freq = self.frequencies[key] + incr
-		if freq < minfreq:
-			freq = maxfreq
-		elif freq > maxfreq:
-			freq = minfreq
-		if self.dbg >=1:
-			print ("*** New value {} is {}".format(key, freq))
-		self.frequencies[key] = freq
-		# Send frequency
-		self.xplane.setValue(key, freq)
-		# Call setMode in order to display the new values
+			# Increment the frequency
+			key = self.getStandbyFrequencyKey()
+			if self.incMode == 0:
+				incr = float(self.cfg.getVariableItem(key, "increment_lo"))
+			else:
+				incr = float(self.cfg.getVariableItem(key, "increment_hi"))
+			maxfreq = float(self.cfg.getVariableItem(key, "range_in_max"))
+			minfreq = float(self.cfg.getVariableItem(key, "range_in_min"))
+			freq = self.frequencies[key] + incr
+			if freq < minfreq:
+				freq = maxfreq
+			elif freq > maxfreq:
+				freq = minfreq
+			if self.dbg >=1:
+				print ("*** New value {} is {}".format(key, freq))
+			self.frequencies[key] = freq
+			# Send frequency
+			self.xplane.setValue(key, freq)
+			# Call setMode in order to display the new values
 		self.update()
 
 	def onEncoderButtonPressed(self):
-		if self.OnOff.getState() == False:
+		if self.profile_selection_active:
+			self.profile_selection_active = False
+		elif self.OnOff.getState() == False:
 			return
-		if self.incMode == 0:
-			self.incMode = 1
 		else:
-			self.incMode = 0
+			if self.incMode == 0:
+				self.incMode = 1
+			else:
+				self.incMode = 0
 
 	# this function will update the mode LEDs as well as respective frequency displays
 	def setMode(self, mode):
@@ -354,98 +376,109 @@ class Radio:
 
 	# Update the displays and the LEDs
 	def update(self):
-		if self.NavOverride == True:
-			self.display.selectActiveMode(Display.NAV)
-		if self.Mode == self.MODE_NAV1:
-			_mode = "ILS"
-			if self.IlsCourseEditingActive == False:
-				self.display.setActiveText(self.fmt_string["ils_freq"], float(self.frequencies["ils_freq"]))
-				self.display.setStandbyText(self.fmt_string["ils_stdby_freq"], float(self.frequencies["ils_stdby_freq"]))
-			else:
-				self.display.setActiveText(self.fmt_string["ils_freq"], float(self.frequencies["ils_freq"]))
-				self.display.setStandbyText(self.fmt_string["ils_course"], float(self.frequencies["ils_course"]))
-			self.display.selectActiveMode(Display.ILS|Display.NAV)
-			self.display.selectStbyNavMode(Display.NONE)
-		elif self.Mode == self.MODE_NAV2:
-			_mode = "VOR"
-			if self.VorCourseEditingActive == False:
-				self.display.setActiveText(self.fmt_string["vor_freq"], float(self.frequencies["vor_freq"]))
-				self.display.setStandbyText(self.fmt_string["vor_stdby_freq"], float(self.frequencies["vor_stdby_freq"]))
-			else:
-				self.display.setActiveText(self.fmt_string["vor_freq"], float(self.frequencies["vor_freq"]))
-				self.display.setStandbyText(self.fmt_string["vor_course"], float(self.frequencies["vor_course"]))
-			self.display.selectActiveMode(Display.VOR|Display.NAV)
-			self.display.selectStbyNavMode(Display.NONE)
-		elif self.Mode == self.MODE_COM1:
-			_mode = "VHF1"
-			self.display.setActiveText(self.fmt_string["com1_freq"], float(self.frequencies["com1_freq"]))
-			self.display.setStandbyText(self.fmt_string["com1_stdby_freq"], float(self.frequencies["com1_stdby_freq"]))
-			self.display.selectStbyNavMode(Display.VHF1)
-			if self.NavOverride == True:
-				self.display.selectActiveMode(Display.NAV)
-			else:
-				self.display.selectActiveMode(Display.NONE)
-		elif self.Mode == self.MODE_COM2:
-			_mode = "VHF2"
-			self.display.setActiveText(self.fmt_string["com2_freq"], float(self.frequencies["com2_freq"]))
-			self.display.setStandbyText(self.fmt_string["com2_stdby_freq"], float(self.frequencies["com2_stdby_freq"]))
-			self.display.selectStbyNavMode(Display.VHF2)
-			if self.NavOverride == True:
-				self.display.selectActiveMode(Display.NAV)
-			else:
-				self.display.selectActiveMode(Display.NONE)
-		elif self.Mode == self.MODE_COM3:
-			_mode = "VHF3"
-			self.display.setActiveText(self.fmt_string["com3_freq"], float(self.frequencies["com3_freq"]))
-			self.display.setStandbyText(self.fmt_string["com3_stdby_freq"], float(self.frequencies["com3_stdby_freq"]))
-			self.display.selectStbyNavMode(Display.VHF3)
-			if self.NavOverride == True:
-				self.display.selectActiveMode(Display.NAV)
-			else:
-				self.display.selectActiveMode(Display.NONE)
-		elif self.Mode == self.MODE_HF1:
-			_mode = "HF1"
-			self.display.setActiveText(self.fmt_string["hf1_freq"], float(self.frequencies["hf1_freq"]))
-			self.display.setStandbyText(self.fmt_string["hf1_stdby_freq"], float(self.frequencies["hf1_stdby_freq"]))
-			if self.AMselected:
-				self.display.selectStbyNavMode(Display.HF1|Display.AM)
-			else:
-				self.display.selectStbyNavMode(Display.HF1)
-			if self.NavOverride == True:
-				self.display.selectActiveMode(Display.NAV)
-			else:
-				self.display.selectActiveMode(Display.NONE)
-		elif self.Mode == self.MODE_HF2:
-			_mode = "HF2"
-			self.display.setActiveText(self.fmt_string["hf2_freq"], float(self.frequencies["hf2_freq"]))
-			self.display.setStandbyText(self.fmt_string["hf2_stdby_freq"], float(self.frequencies["hf2_stdby_freq"]))
-			if self.AMselected:
-				self.display.selectStbyNavMode(Display.HF2|Display.AM)
-			else:
-				self.display.selectStbyNavMode(Display.HF2)
-			if self.NavOverride == True:
-				self.display.selectActiveMode(Display.NAV)
-			else:
-				self.display.selectActiveMode(Display.NONE)
-		elif self.Mode == self.MODE_ADF1:
-			_mode = "MLF"
-			self.display.setActiveText(self.fmt_string["adf1_freq"], float(self.frequencies["adf1_freq"]))
-			self.display.setStandbyText(self.fmt_string["adf1_stdby_freq"], float(self.frequencies["adf1_stdby_freq"]))
-			self.display.selectActiveMode(Display.MLS|Display.NAV)
-			self.display.selectStbyNavMode(Display.NONE)
-		elif self.Mode == self.MODE_ADF2:
-			_mode = "ADF"
-			self.display.setActiveText(self.fmt_string["adf2_freq"], float(self.frequencies["adf2_freq"]))
-			self.display.setStandbyText(self.fmt_string["adf2_stdby_freq"], float(self.frequencies["adf2_stdby_freq"]))
-			self.display.selectActiveMode(Display.ADF|Display.NAV)
-			self.display.selectStbyNavMode(Display.NONE)
+		if self.profile_selection_active:
+			self.display.enable(True)
+			act_profile_num = self.cfg.getActiveProfileNum()
+			act_profile_name= self.cfg.getActiveProfileName()
+			print ('Pro {:1d}'.format(act_profile_num))
+			print ('{:>6s}'.format(act_profile_name))
+			self.display.setActiveText('Pro {:1d}', act_profile_num)
+			self.display.setStandbyText('{:>6s}', act_profile_name)
+		elif self.panel_off:
+			self.display.enable(False)
 		else:
-			self.display.clearActiveFrequency()
-			self.display.clearStbyFrequency()
-			self.display.selectActiveMode(Display.NONE)
-			self.display.selectStbyNavMode(Display.NONE)
-		if self.dbg >=1:
-			print ('Mode is {}'.format(_mode))
+			if self.NavOverride == True:
+				self.display.selectActiveMode(Display.NAV)
+			if self.Mode == self.MODE_NAV1:
+				_mode = "ILS"
+				if self.IlsCourseEditingActive == False:
+					self.display.setActiveText(self.fmt_string["ils_freq"], float(self.frequencies["ils_freq"]))
+					self.display.setStandbyText(self.fmt_string["ils_stdby_freq"], float(self.frequencies["ils_stdby_freq"]))
+				else:
+					self.display.setActiveText(self.fmt_string["ils_freq"], float(self.frequencies["ils_freq"]))
+					self.display.setStandbyText(self.fmt_string["ils_course"], float(self.frequencies["ils_course"]))
+				self.display.selectActiveMode(Display.ILS|Display.NAV)
+				self.display.selectStbyNavMode(Display.NONE)
+			elif self.Mode == self.MODE_NAV2:
+				_mode = "VOR"
+				if self.VorCourseEditingActive == False:
+					self.display.setActiveText(self.fmt_string["vor_freq"], float(self.frequencies["vor_freq"]))
+					self.display.setStandbyText(self.fmt_string["vor_stdby_freq"], float(self.frequencies["vor_stdby_freq"]))
+				else:
+					self.display.setActiveText(self.fmt_string["vor_freq"], float(self.frequencies["vor_freq"]))
+					self.display.setStandbyText(self.fmt_string["vor_course"], float(self.frequencies["vor_course"]))
+				self.display.selectActiveMode(Display.VOR|Display.NAV)
+				self.display.selectStbyNavMode(Display.NONE)
+			elif self.Mode == self.MODE_COM1:
+				_mode = "VHF1"
+				self.display.setActiveText(self.fmt_string["com1_freq"], float(self.frequencies["com1_freq"]))
+				self.display.setStandbyText(self.fmt_string["com1_stdby_freq"], float(self.frequencies["com1_stdby_freq"]))
+				self.display.selectStbyNavMode(Display.VHF1)
+				if self.NavOverride == True:
+					self.display.selectActiveMode(Display.NAV)
+				else:
+					self.display.selectActiveMode(Display.NONE)
+			elif self.Mode == self.MODE_COM2:
+				_mode = "VHF2"
+				self.display.setActiveText(self.fmt_string["com2_freq"], float(self.frequencies["com2_freq"]))
+				self.display.setStandbyText(self.fmt_string["com2_stdby_freq"], float(self.frequencies["com2_stdby_freq"]))
+				self.display.selectStbyNavMode(Display.VHF2)
+				if self.NavOverride == True:
+					self.display.selectActiveMode(Display.NAV)
+				else:
+					self.display.selectActiveMode(Display.NONE)
+			elif self.Mode == self.MODE_COM3:
+				_mode = "VHF3"
+				self.display.setActiveText(self.fmt_string["com3_freq"], float(self.frequencies["com3_freq"]))
+				self.display.setStandbyText(self.fmt_string["com3_stdby_freq"], float(self.frequencies["com3_stdby_freq"]))
+				self.display.selectStbyNavMode(Display.VHF3)
+				if self.NavOverride == True:
+					self.display.selectActiveMode(Display.NAV)
+				else:
+					self.display.selectActiveMode(Display.NONE)
+			elif self.Mode == self.MODE_HF1:
+				_mode = "HF1"
+				self.display.setActiveText(self.fmt_string["hf1_freq"], float(self.frequencies["hf1_freq"]))
+				self.display.setStandbyText(self.fmt_string["hf1_stdby_freq"], float(self.frequencies["hf1_stdby_freq"]))
+				if self.AMselected:
+					self.display.selectStbyNavMode(Display.HF1|Display.AM)
+				else:
+					self.display.selectStbyNavMode(Display.HF1)
+				if self.NavOverride == True:
+					self.display.selectActiveMode(Display.NAV)
+				else:
+					self.display.selectActiveMode(Display.NONE)
+			elif self.Mode == self.MODE_HF2:
+				_mode = "HF2"
+				self.display.setActiveText(self.fmt_string["hf2_freq"], float(self.frequencies["hf2_freq"]))
+				self.display.setStandbyText(self.fmt_string["hf2_stdby_freq"], float(self.frequencies["hf2_stdby_freq"]))
+				if self.AMselected:
+					self.display.selectStbyNavMode(Display.HF2|Display.AM)
+				else:
+					self.display.selectStbyNavMode(Display.HF2)
+				if self.NavOverride == True:
+					self.display.selectActiveMode(Display.NAV)
+				else:
+					self.display.selectActiveMode(Display.NONE)
+			elif self.Mode == self.MODE_ADF1:
+				_mode = "MLF"
+				self.display.setActiveText(self.fmt_string["adf1_freq"], float(self.frequencies["adf1_freq"]))
+				self.display.setStandbyText(self.fmt_string["adf1_stdby_freq"], float(self.frequencies["adf1_stdby_freq"]))
+				self.display.selectActiveMode(Display.MLS|Display.NAV)
+				self.display.selectStbyNavMode(Display.NONE)
+			elif self.Mode == self.MODE_ADF2:
+				_mode = "ADF"
+				self.display.setActiveText(self.fmt_string["adf2_freq"], float(self.frequencies["adf2_freq"]))
+				self.display.setStandbyText(self.fmt_string["adf2_stdby_freq"], float(self.frequencies["adf2_stdby_freq"]))
+				self.display.selectActiveMode(Display.ADF|Display.NAV)
+				self.display.selectStbyNavMode(Display.NONE)
+			else:
+				self.display.clearActiveFrequency()
+				self.display.clearStbyFrequency()
+				self.display.selectActiveMode(Display.NONE)
+				self.display.selectStbyNavMode(Display.NONE)
+			if self.dbg >=1:
+				print ('Mode is {}'.format(_mode))
 
 	def stop(self):
 		self.display.enable(False)
