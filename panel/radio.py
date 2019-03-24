@@ -262,11 +262,13 @@ class Radio:
 	def setActiveFrequency(self, freq):
 		key = self.getActiveFrequencyKey()
 		self.frequencies[key] = freq
-		self.xplane.setValue(self.getActiveFrequencyKey(), freq)
+		self.xplane.setValue(key, freq)
 
 	def onEncoderLeft(self):
 		if self.profile_selection_active:
+			self.xplane.stopReceiver()
 			self.cfg.prevProfile()
+			self.xplane.startReceiver()
 		elif self.OnOff.getState() == False:
 				return
 		else:
@@ -292,7 +294,9 @@ class Radio:
 
 	def onEncoderRight(self):
 		if self.profile_selection_active:
+			self.xplane.stopReceiver()
 			self.cfg.nextProfile()
+			self.xplane.startReceiver()
 		elif self.OnOff.getState() == False:
 			return
 		else:
@@ -481,8 +485,8 @@ class Radio:
 				print ('Mode is {}'.format(_mode))
 
 	def stop(self):
+		self.xplane.stop()
 		self.display.enable(False)
 		self.keyboard.stop()
-		self.xplane.stop()
 		print ("...Radio terminated...")
 

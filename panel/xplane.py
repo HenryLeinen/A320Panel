@@ -93,13 +93,13 @@ class xplane(threading.Thread):
 	# EXPORTED FUNCTION
 	# This function must be used to stop receiving from x-plane. It also stops the beacon receiver and closes the socket in order to terminate.
 	def stop(self):
+		# stop the receiver
+		self.stopReceiver()
 		self.active = False
 		# stop the beacon
 		self.beacon.stop()
 		# shutdown the socket
 		self.sock.close()
-		# stop the receiver
-		self.stopReceiver()
 
 	# INTERNAL FUNCTION
 	# Send a dataref change to x-plane
@@ -195,6 +195,12 @@ class xplane(threading.Thread):
 		for var in list(self.cfg.getRequests().keys()):
 			self._request(self.cfg.getRequests()[var])
 
+	# INTERNAL FUNCTION
+	# This function will unsubscribe from all datarefs given in the configuration file listed under the 'Requests' section.
+	def _unsubscribe(self):
+		for var in list(self.cfg.getRequests().keys()):
+			self._request(self.cfg.getRequests()[var], 0)
+
 	# EXTERNAL FUNCTION
 	# This function will initiate the receiver function by resubscribing to the dataref values from the config file.
 	def startReceiver(self):
@@ -204,7 +210,7 @@ class xplane(threading.Thread):
 	# EXTERNAL FUNCTION
 	# This function currently does nothing meaningful
 	def stopReceiver(self):
-		pass
+		self._unsubscribe()
 
 	# INTERNAL FUNCTION
 	# This function will parse a list of received datarefs for changes. If changes are found, it will inform the user by calling the respective callback function
