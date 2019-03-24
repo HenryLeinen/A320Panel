@@ -1,4 +1,4 @@
-from configparser import ConfigParser
+from panel.config import config
 from panel.beacon import XPlaneBeaconListener
 import socket
 import struct
@@ -7,15 +7,12 @@ import threading
 
 class xplane(threading.Thread):
 
-	def __init__(self, dbg=0):
+	def __init__(self, cnf, dbg=0):
 		threading.Thread.__init__(self)
 		self.active = True
 		self.debug = dbg
 		# Initialize the config file parser
-		self.cfg = ConfigParser()
-		# load the config file
-		self.cfg.read('panel/xplane.cfg')
-		self.active_profile = self.cfg["Default"]["Profile"]
+		self.cfg = cnf
 		# start listening for the X-Plane beacon, which tells us where x-plane is currently running
 		self.beacon = XPlaneBeaconListener()
 		self.beacon.registerChangeEvent(self.xPlaneHostChange)
@@ -31,19 +28,13 @@ class xplane(threading.Thread):
 		self.xplaneValues = {}
 		self.callbacks = {}
 
-	def _getProfileItemKey(self, item):
-		return '{}.{}'.format(self.active_profile,item)
-	
-	def _getProfileItem(self, item):
-		return self.cfg[self._getProfileItemKey(item)]
-
 	# EXPORTED FUNCTION
 	# This function is used by the user of this class and registers a callback function for a particular variable.
 	# The variable is a logical variable name, which will internally be translated into an xplane variable using a lookup table
 	def setCallback(self, var, cbk):
 		# lookup the dataref value which is related to the given variable
-		if var in self.cfg[self._getProfileItemKey("Requests")].keys():
-			dataref = self.cfg[self._getProfileItemKey("Requests")][var]
+		if var in self.cfg.getRequests().keys():
+			dataref = self.cfg.getRequests()[var]
 			if self.debug >=2:
 				print ("Setting callback for variable %s"%dataref)
 			self.callbacks[dataref] = cbk
@@ -54,9 +45,8 @@ class xplane(threading.Thread):
 	# INTERNAL FUNCTION
 	# This function will reinterpret a value received from x-plane into the related logical value which is relevant for the user
 	def _reinterpret(self, var, val):
-		t_key = 'Var.{}'.format(var)
 		# get the type
-		t_type = self.cfg[t_key]["type"]
+		t_type = self.cfg.getVariableItem(var,"type")
 		if t_type == "bool":
 			if val == 1.0:
 				return True
@@ -66,16 +56,16 @@ class xplane(threading.Thread):
 			return float(val)
 		elif t_type == "enum":
 			# get the name of the map
-			t_map = self.cfg[t_key]["map"]
-			t_val_idx = list(self.cfg[t_map].values()).index(str(val))
-			return list(self.cfg[t_map].keys())[t_val_idx]
+			t_map = self.cfg.getVariableItem(var,"map")
+			t_val_idx = list(self.cfg.getMap(t_map).values()).index(str(val))
+			return list(self.cfg.getMap(t_map).keys())[t_val_idx]
 		elif t_type == "linear":
-			t_offs = float(self.cfg[t_key]["offset"])
-			t_slp  = float(self.cfg[t_key]["slope"])
+			t_offs = float(self.cfg.getVariableItem(var,"offset"))
+			t_slp  = float(self.cfg.getVariableItem(var,"slope"))
 			# y = offs + m*x   ==> x = (y-offs)/m
 			t_val = (float(val)-t_offs) / t_slp
-			t_min = float(self.cfg[t_key]["range_in_min"])
-			t_max = float(self.cfg[t_key]["range_in_max"])
+			t_min = float(self.cfg.getVariableItem(var, "range_in_min"))
+			t_max = float(self.cfg.getVariableItem(var, "range_in_max"))
 			if t_val < t_min:
 				t_val = t_min
 			elif t_val > t_max:
@@ -126,51 +116,50 @@ class xplane(threading.Thread):
 	# EXPORTED FUNCTION
 	# This function sends a value to x-plane. It uses the configuration structure to find out how to interpret the 
 	# value to send
-	def setValue(self, item, value):
+	def setValue(self, var, value):
 		# look up the item in the configuration structure
-		if item in self.cfg[self._getProfileItemKey("Variables")].keys():
+		if var in self.cfg.getVariables().keys():
 			if self.debug >=2:
-				print ("Setting item %s to value %s" %(item, str(value)))
+				print ("Setting item %s to value %s" %(var, str(value)))
 			# item does exist, so lookup the dataref and the type
-			t_key = 'Var.{}'.format(item)
 			# get the type
-			t_type = self.cfg[t_key]["type"]
+			t_type = self.cfg.getVariableType(var)
 			if t_type == "bool":
 				if value > 0:
 					t_val = 1.0
 				else:
 					t_val = 0.0
 				if self.debug >=2:
-					print ("Now sending {} to {}".format(t_val, self.cfg[self._getProfileItemKey("Variables")][item]))
-				self._sendValue(self.cfg[self._getProfileItemKey("Variables")][item], float(t_val))
+					print ("Now sending {} to {}".format(t_val, self.cfg.getVariables()[var]))
+				self._sendValue(self.cfg.getVariables()[var], float(t_val))
 			elif t_type == "float":
 				if self.debug >=2:
-					print ("Now sending {} to {}".format(value, self.cfg[self._getProfileItemKey("Variables")][item]))
-				self._sendValue(self.cfg[self._getProfileItemKey("Variables")][item], float(value))
+					print ("Now sending {} to {}".format(value, self.cfg.getVariables()[var]))
+				self._sendValue(self.cfg.getVariables()[var], float(value))
 			elif t_type == "enum":
 				# get the name of the map
-				t_map = self.cfg[t_key]["map"]
-				t_val = self.cfg[t_map][value]
-				self._sendValue(self.cfg[self._getProfileItemKey("Variables")][item], float(t_val))
+				t_map = self.cfg.getVariableItem(var, "map")
+				t_val = self.cfg.getMap(t_map)[value]
+				self._sendValue(self.cfg.getVariables()[var], float(t_val))
 			elif t_type == "linear":
 				# get min, max values against which we need to clip the input
-				t_min = float(self.cfg[t_key]["range_in_min"])
-				t_max = float(self.cfg[t_key]["range_in_max"])
+				t_min = float(self.cfg.getVariableItem(var, "range_in_min"))
+				t_max = float(self.cfg.getVariableItem(var, "range_in_max"))
 				if float(value) < t_min:
 					value = t_min
 				elif float(value) > t_max:
 					value = t_max
 				# get the offset and the slope to calculate the new value
-				t_offs = float(self.cfg[t_key]["offset"])
-				t_slp  = float(self.cfg[t_key]["slope"])
+				t_offs = float(self.cfg.getVariableItem(var, "offset"))
+				t_slp  = float(self.cfg.getVariableItem(var, "slope"))
 				t_val = t_offs + t_slp*float(value)
 				if self.debug >=2:
-					print ("Now sending {} to {}".format(t_val, self.cfg[self._getProfileItemKey("Variables")][item]))
-				self._sendValue(self.cfg[self._getProfileItemKey("Variables")][item], float(t_val))
+					print ("Now sending {} to {}".format(t_val, self.cfg.getVariables()[var]))
+				self._sendValue(self.cfg.getVariables()[var], float(t_val))
 			else:
 				print ("Invalid mapping table !!!")
 		else:
-			print ('******* setValue: Invalid item {}*******'.format(item))
+			print ('******* setValue: Invalid item {}*******'.format(var))
 
 	# INTERNAL FUNCTION
 	# This function will send a dataref request to x-plane. The update frequency is optional and defaults to 1 per second
@@ -203,8 +192,8 @@ class xplane(threading.Thread):
 	# INTERNAL FUNCTION
 	# This function will subscribe to all datarefs given in the configuration file listed under the 'Requests' section.
 	def _subscribe(self):
-		for var in list(self.cfg[self._getProfileItemKey("Requests")].keys()):
-			self._request(self.cfg[self._getProfileItemKey("Requests")][var])
+		for var in list(self.cfg.getRequests().keys()):
+			self._request(self.cfg.getRequests()[var])
 
 	# EXTERNAL FUNCTION
 	# This function will initiate the receiver function by resubscribing to the dataref values from the config file.
@@ -234,8 +223,8 @@ class xplane(threading.Thread):
 					if idx in self.callbacks.keys():
 						if self.debug >=1:
 							print ("Calling callback for %s" % idx.strip('\x00'))
-						v1 = list(self.cfg[self._getProfileItemKey("Requests")].values()).index(idx)
-						v2 = list(self.cfg[self._getProfileItemKey("Requests")].keys())[v1]
+						v1 = list(self.cfg.getRequests().values()).index(idx)
+						v2 = list(self.cfg.getRequests().keys())[v1]
 						newval_int = self._reinterpret(v2, newval)		# revers interpret the x-plane value into the logical value known to the calling app
 						if self.debug >=3:
 							print ("New value is %d, converting %s"%(newval, newval_int))

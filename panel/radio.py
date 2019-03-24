@@ -1,4 +1,4 @@
-from configparser import ConfigParser
+from panel.config import config
 from panel.display import Display
 from panel.max7219 import Lcd
 from panel.encoder import Encoder
@@ -46,10 +46,9 @@ class Radio:
 		self.encoder.registerButtonPressedEvent(self.onEncoderButtonPressed)
 		# setup the internal datastructures
 		# Initialize the config file parser
-		self.cfg = ConfigParser()
+		self.cfg = config()
 		# load the config file
-		self.cfg.read('panel/xplane.cfg')
-		self.active_profile = self.cfg["Default"]["Profile"]
+		self.cfg.load('config/xplane.cfg')
 		self.frequencies = {
 			"vor_freq": 112.00,
 			"vor_stdby_freq":	112.00,
@@ -96,7 +95,7 @@ class Radio:
 		}
 
 		# Initialize the xplane receiver
-		self.xplane = xplane(dbg)
+		self.xplane = xplane(self.cfg, dbg)
 		self.xplane.start()
 		# Setup callbacks for server variable changes as needed
 		self.xplane.setCallback("com1_freq", self.cbkFrequencyValueChanged)
@@ -121,13 +120,6 @@ class Radio:
 		# setup the OnOffSwitch
 		self.OnOff = OnOffSwitch(26, self.OnOffChanged)
 		self.OnOffChanged(self.OnOff.getState())
-
-
-	def _getProfileItemKey(self, item):
-		return '{}.{}'.format(self.active_profile,item)
-	
-	def _getProfileItem(self, item):
-		return self.cfg[self._getProfileItemKey(item)]
 
 	def OnOffChanged(self, newval):
 		if newval == 0:
@@ -264,13 +256,12 @@ class Radio:
 			return
 		# Decrement the frequency
 		key = self.getStandbyFrequencyKey()
-		t_key = 'Var.{}'.format(key)
 		if self.incMode == 0:
-			incr = -float(self.cfg[t_key]["increment_lo"])
+			incr = -float(self.cfg.getVariableItem(key, "increment_lo"))
 		else:
-			incr = -float(self.cfg[t_key]["increment_hi"])
-		maxfreq = float(self.cfg[t_key]["range_in_max"])
-		minfreq = float(self.cfg[t_key]["range_in_min"])
+			incr = -float(self.cfg.getVariableItem(key,"increment_hi"))
+		maxfreq = float(self.cfg.getVariableItem(key, "range_in_max"))
+		minfreq = float(self.cfg.getVariableItem(key, "range_in_min"))
 		freq = self.frequencies[key] + incr
 		if freq < minfreq:
 			freq = maxfreq
@@ -288,13 +279,12 @@ class Radio:
 			return
 		# Increment the frequency
 		key = self.getStandbyFrequencyKey()
-		t_key = 'Var.{}'.format(key)
 		if self.incMode == 0:
-			incr = float(self.cfg[t_key]["increment_lo"])
+			incr = float(self.cfg.getVariableItem(key, "increment_lo"))
 		else:
-			incr = float(self.cfg[t_key]["increment_hi"])
-		maxfreq = float(self.cfg[t_key]["range_in_max"])
-		minfreq = float(self.cfg[t_key]["range_in_min"])
+			incr = float(self.cfg.getVariableItem(key, "increment_hi"))
+		maxfreq = float(self.cfg.getVariableItem(key, "range_in_max"))
+		minfreq = float(self.cfg.getVariableItem(key, "range_in_min"))
 		freq = self.frequencies[key] + incr
 		if freq < minfreq:
 			freq = maxfreq
@@ -359,8 +349,8 @@ class Radio:
 		else:
 			self.display.clearActiveFrequency()
 			self.display.clearStbyFrequency()
-			self.display.selectActiveMode(Display.CLR)
-			self.display.selectStbyNavMode(Display.CLR)
+			self.display.selectActiveMode(Display.NONE)
+			self.display.selectStbyNavMode(Display.NONE)
 
 	# Update the displays and the LEDs
 	def update(self):

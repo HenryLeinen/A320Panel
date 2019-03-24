@@ -60,8 +60,8 @@ class Encoder:
 		GPIO.setup(self.ENC_A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 		GPIO.setup(self.ENC_B, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 		GPIO.setup(self.ENC_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-		GPIO.add_event_detect(self.ENC_A, GPIO.BOTH, callback=self.pinChanged, bouncetime=20)
-		GPIO.add_event_detect(self.ENC_B, GPIO.BOTH, callback=self.pinChanged, bouncetime=20)
+		GPIO.add_event_detect(self.ENC_A, GPIO.BOTH, callback=self.pinChanged, bouncetime=50)
+		GPIO.add_event_detect(self.ENC_B, GPIO.BOTH, callback=self.pinChanged, bouncetime=50)
 		GPIO.add_event_detect(self.ENC_BUTTON, GPIO.BOTH, callback=self.pinChanged, bouncetime=200)
 
 	def registerLeftEvent(self, func):
