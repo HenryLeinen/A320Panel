@@ -96,26 +96,29 @@ class Radio:
 			"hf2_freq":			'{:>6.2f}',
 			"hf2_stdby_freq":	'{:>6.2f}',
 		}
+		self.callbacks = {
+			"com1_freq":		self.cbkFrequencyValueChanged,
+			"com1_freq":		self.cbkFrequencyValueChanged,
+			"com1_stdby_freq":	self.cbkFrequencyValueChanged,
+			"com1_stdby_freq":	self.cbkFrequencyValueChanged,
+			"ils_freq":			self.cbkFrequencyValueChanged,
+			"ils_stdby_freq":	self.cbkFrequencyValueChanged,
+			"vor_freq":			self.cbkFrequencyValueChanged,
+			"vor_stdby_freq":	self.cbkFrequencyValueChanged,
+			"adf1_freq":		self.cbkFrequencyValueChanged,
+			"adf1_stdby_freq":	self.cbkFrequencyValueChanged,
+			"adf2_freq":		self.cbkFrequencyValueChanged,
+			"adf2_stdby_freq":	self.cbkFrequencyValueChanged,
+			"vor_course":		self.cbkFrequencyValueChanged,
+			"ils_course":		self.cbkFrequencyValueChanged,
+			"integ_light":		self.cbkBacklightValueChanged
+		}
 
 		# Initialize the xplane receiver
 		self.xplane = xplane(self.cfg, dbg)
 		self.xplane.start()
 		# Setup callbacks for server variable changes as needed
-		self.xplane.setCallback("com1_freq", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("com2_freq", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("com1_stdby_freq", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("com2_stdby_freq", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("ils_freq", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("ils_stdby_freq", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("vor_freq", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("vor_stdby_freq", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("adf1_freq", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("adf2_freq", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("adf1_stdby_freq", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("adf2_stdby_freq", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("vor_course", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("ils_course", self.cbkFrequencyValueChanged)
-		self.xplane.setCallback("integ_light", self.cbkBacklightValueChanged)
+		self.xplane.startReceiver(self.callbacks)
 		# setup the keyboard and register the callback
 		self.keyboard = Keyboard( [0,5,6,13], [4,3,2,19])
 		self.keyboard.registerCallbacks(self.onKeyPressed, 0)
@@ -194,9 +197,9 @@ class Radio:
 			elif key == Keyboard.BTN_XCHG:
 				# exchange standby frequency with active frequency
 				freq = self.getActiveFrequency()
-				freq_2 = self.getStandbyFrequency()
+				freq_2 = self.getStandbyFrequency(True)
 				self.setActiveFrequency(freq_2)
-				self.setStandbyFrequency(freq)
+				self.setStandbyFrequency(freq, True)
 				if self.Mode == self.MODE_NAV1:
 					self.IlsCourseEditingActive = not self.IlsCourseEditingActive
 				elif self.Mode == self.MODE_NAV2:
@@ -204,14 +207,14 @@ class Radio:
 		self.update()
 
 
-	def getStandbyFrequencyKey(self):
+	def getStandbyFrequencyKey(self, IgnoreOverrides=False):
 		if self.Mode == self.MODE_NAV1:
-			if self.IlsCourseEditingActive:
+			if (not IgnoreOverrides) and self.IlsCourseEditingActive:
 				key = "ils_course"
 			else:
 				key = "ils_stdby_freq"
 		elif self.Mode == self.MODE_NAV2:
-			if self.VorCourseEditingActive:
+			if (not IgnoreOverrides ) and self.VorCourseEditingActive:
 				key = "vor_course"
 			else:
 				key = "vor_stdby_freq"
@@ -248,11 +251,11 @@ class Radio:
 			key = "hf2_freq"
 		return key
 
-	def getStandbyFrequency(self):
-		return self.frequencies[self.getStandbyFrequencyKey()]
+	def getStandbyFrequency(self, IgnoreOverrides=False):
+		return self.frequencies[self.getStandbyFrequencyKey(IgnoreOverrides)]
 
-	def setStandbyFrequency(self, freq):
-		key = self.getStandbyFrequencyKey()
+	def setStandbyFrequency(self, freq, IgnoreOverrides=False):
+		key = self.getStandbyFrequencyKey(IgnoreOverrides)
 		self.frequencies[key] = freq
 		self.xplane.setValue(key, freq)
 
@@ -268,7 +271,7 @@ class Radio:
 		if self.profile_selection_active:
 			self.xplane.stopReceiver()
 			self.cfg.prevProfile()
-			self.xplane.startReceiver()
+			self.xplane.startReceiver(self.callbacks)
 		elif self.OnOff.getState() == False:
 				return
 		else:
@@ -296,7 +299,7 @@ class Radio:
 		if self.profile_selection_active:
 			self.xplane.stopReceiver()
 			self.cfg.nextProfile()
-			self.xplane.startReceiver()
+			self.xplane.startReceiver(self.callbacks)
 		elif self.OnOff.getState() == False:
 			return
 		else:

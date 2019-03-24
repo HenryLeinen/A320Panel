@@ -201,16 +201,29 @@ class xplane(threading.Thread):
 		for var in list(self.cfg.getRequests().keys()):
 			self._request(self.cfg.getRequests()[var], 0)
 
+
 	# EXTERNAL FUNCTION
 	# This function will initiate the receiver function by resubscribing to the dataref values from the config file.
-	def startReceiver(self):
+	def startReceiver(self, callbacks=None):
 		# Subscribe to the datarefs
 		self._subscribe()
+		if callbacks != None:
+			self.callbacks = {}
+			self.setCallbacks(callbacks)
 
 	# EXTERNAL FUNCTION
 	# This function currently does nothing meaningful
 	def stopReceiver(self):
 		self._unsubscribe()
+		self.datarefs = {}
+		self.datarefidx = 0
+		self.xplaneValues = {}
+
+	# EXTERNAL FUNCTION
+	# This function takes an array of tuples which contain the callback functions
+	def setCallbacks(self, callbacks):
+		for id in callbacks.keys():
+			self.setCallback(id, callbacks[id])
 
 	# INTERNAL FUNCTION
 	# This function will parse a list of received datarefs for changes. If changes are found, it will inform the user by calling the respective callback function

@@ -48,6 +48,7 @@ class config:
         filename = self.profiles[new_profile_name]["filename"]
         self.profiles["Default"]["Active"] = new_profile_name
         print ('Loading profile {} from file {}'.format(new_profile_name, filename))
+        self.cfg.clear()
         self.cfg.read('config/{}'.format(filename))
 
     def prevProfile(self):
@@ -59,6 +60,7 @@ class config:
         filename = self.profiles[new_profile_name]["filename"]
         self.profiles["Default"]["Active"] = new_profile_name
         print ('Loading profile {} from file {}'.format(new_profile_name, filename))
+        self.cfg.clear()
         self.cfg.read('config/{}'.format(filename))
 
     def getNumberOfProfiles(self):
